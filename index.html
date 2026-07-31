@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     --ink:#1c1815; --paper:#f6f1e7; --card:#fffdf8; --line:#e4dac7;
@@ -167,6 +168,7 @@
     <button class="tab-btn active" data-tab="pos">الكاشير</button>
     <button class="tab-btn" data-tab="dash">لوحة التحكم</button>
     <button class="tab-btn" data-tab="sales">المبيعات</button>
+    <button class="tab-btn" data-tab="reports">التقارير</button>
     <button class="tab-btn" data-tab="admin" id="tab-admin-btn" style="display:none;">إدارة المنتجات</button>
   </div>
 
@@ -224,6 +226,36 @@
       </div>
     </section>
 
+    <!-- REPORTS -->
+    <section class="screen" id="screen-reports">
+      <div class="panel">
+        <h3>تقرير المبيعات</h3>
+        <div class="field" style="max-width:220px;">
+          <label>الفترة</label>
+          <select id="report-period">
+            <option value="day">اليوم</option>
+            <option value="week">آخر 7 أيام</option>
+            <option value="month">الشهر الحالي</option>
+          </select>
+        </div>
+        <div class="kpis" style="margin-top:14px;">
+          <div class="kpi"><div class="lbl">إجمالي المبيعات</div><div class="val" id="rep-total">0.00 ج.م</div></div>
+          <div class="kpi brick"><div class="lbl">عدد الفواتير</div><div class="val" id="rep-count">0</div></div>
+          <div class="kpi gold"><div class="lbl">متوسط الفاتورة</div><div class="val" id="rep-avg">0.00 ج.م</div></div>
+        </div>
+        <table style="margin-top:16px;">
+          <thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>الكاشير</th><th>الدفع</th><th>الإجمالي</th></tr></thead>
+          <tbody id="rep-body"></tbody>
+        </table>
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;">
+          <button class="btn-primary" style="width:auto;padding:10px 18px;" id="rep-excel-btn">⬇ تحميل Excel</button>
+          <button class="btn-primary" style="width:auto;padding:10px 18px;background:var(--olive);" id="rep-pdf-btn">⬇ تحميل PDF</button>
+          <button class="btn-ghost" style="width:auto;padding:10px 18px;" id="rep-email-btn">✉ إرسال بالإيميل</button>
+        </div>
+        <div class="login-err" id="rep-note" style="color:var(--olive-dark);margin-top:8px;"></div>
+      </div>
+    </section>
+
     <!-- ADMIN -->
     <section class="screen" id="screen-admin">
       <div class="panel">
@@ -274,18 +306,7 @@
   </div>
 </div>
 
-<!-- Support modal -->
-<div class="modal-bg" id="support-modal">
-  <div class="modal">
-    <h3>الدعم الفني</h3>
-    <div class="field"><label>اكتب المشكلة أو الاستفسار</label><textarea id="sup-msg"></textarea></div>
-    <div class="login-err" id="sup-note" style="color:var(--olive-dark);"></div>
-    <div class="modal-actions">
-      <button class="btn-ghost" id="sup-cancel">إلغاء</button>
-      <button class="btn-primary" id="sup-send">إرسال</button>
-    </div>
-  </div>
-</div>
+<!-- الدعم الفني بقى بيفتح واتساب مباشرة، مفيش مودال هنا خالص -->
 
 <script>
 /* ================= الإعدادات ================= */
@@ -348,7 +369,7 @@ let products = ls_get('abdo_products', []);
 let cart = {};
 let activePay = 'cash';
 let activeCat = null;
-let sessionSales = []; // بس اللي حصل في الجلسة دي (محلي + متزامن)
+let sessionSales = ls_get('abdo_sales_log', []); // محفوظة محليًا عشان متختفيش مع الـ Refresh
 
 /* ================= حالة الاتصال ================= */
 function updateStatus(){
@@ -418,6 +439,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     document.getElementById('screen-'+btn.dataset.tab).classList.add('active');
     if(btn.dataset.tab==='dash') renderDashboard();
     if(btn.dataset.tab==='sales') renderSales();
+    if(btn.dataset.tab==='reports') renderReport();
     if(btn.dataset.tab==='admin') renderAdminProducts();
   });
 });
@@ -580,6 +602,7 @@ document.getElementById('checkout-btn').addEventListener('click', async ()=>{
   };
 
   sessionSales.unshift(invoice);
+  ls_set('abdo_sales_log', sessionSales);
   queueSale(invoice);
 
   const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة'}[activePay];
@@ -611,6 +634,7 @@ async function syncPending(){
     const remaining = q.filter(s=>!savedIds.includes(s.invoiceId));
     ls_set('abdo_pending_sales', remaining);
     sessionSales.forEach(s=>{ if(savedIds.includes(s.invoiceId)) s.synced = true; });
+    ls_set('abdo_sales_log', sessionSales);
     renderSales(); renderDashboard();
 
     // مزامنة الدعم الفني المعلّق كمان
@@ -719,31 +743,104 @@ function renderAdminProducts(){
   }));
 }
 
-/* ================= الدعم الفني ================= */
+/* ================= الدعم الفني (واتساب مباشر) ================= */
+// حط رقم واتساب شركتك هنا بصيغة دولية من غير + ومن غير أصفار في الأول
+// مثال لمصر: بدل ما تكتب 01012345678 اكتب 201012345678
+const SUPPORT_WHATSAPP_NUMBER = "201000000000";
+
 document.getElementById('support-fab').addEventListener('click', ()=>{
-  document.getElementById('sup-msg').value = '';
-  document.getElementById('sup-note').textContent = '';
-  document.getElementById('support-modal').classList.add('show');
+  const msg = encodeURIComponent('مرحبًا، محتاج دعم فني في تطبيق عبدو حسابات. المستخدم: ' + (currentUser ? currentUser.username : ''));
+  window.open('https://wa.me/' + SUPPORT_WHATSAPP_NUMBER + '?text=' + msg, '_blank');
 });
-document.getElementById('sup-cancel').addEventListener('click', ()=>{
-  document.getElementById('support-modal').classList.remove('show');
+
+/* ================= التقارير ================= */
+function getReportRange(period){
+  const now = new Date();
+  let from;
+  if(period === 'week'){ from = new Date(now.getTime() - 7*24*60*60*1000); }
+  else if(period === 'month'){ from = new Date(now.getFullYear(), now.getMonth(), 1); }
+  else { from = new Date(now.getFullYear(), now.getMonth(), now.getDate()); }
+  return { from, to: now };
+}
+
+function filteredReportSales(){
+  const period = document.getElementById('report-period').value;
+  const {from} = getReportRange(period);
+  return sessionSales.filter(inv => new Date(inv.dateTime) >= from);
+}
+
+function renderReport(){
+  const list = filteredReportSales();
+  const total = list.reduce((s,i)=>s+i.total,0);
+  document.getElementById('rep-total').textContent = fmt(total)+' ج.م';
+  document.getElementById('rep-count').textContent = list.length;
+  document.getElementById('rep-avg').textContent = fmt(list.length? total/list.length : 0)+' ج.م';
+
+  const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة'};
+  const tbody = document.getElementById('rep-body');
+  tbody.innerHTML = list.length ? list.map(inv=>`
+    <tr>
+      <td>${inv.invoiceId}</td>
+      <td>${new Date(inv.dateTime).toLocaleString('ar-EG')}</td>
+      <td>${inv.cashier}</td>
+      <td>${payLabel[inv.paymentMethod]}</td>
+      <td>${fmt(inv.total)} ج.م</td>
+    </tr>`).join('') : '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:16px;">مفيش فواتير في الفترة دي</td></tr>';
+}
+document.getElementById('report-period').addEventListener('change', renderReport);
+
+document.getElementById('rep-excel-btn').addEventListener('click', ()=>{
+  const list = filteredReportSales();
+  let csv = '\uFEFF' + ['رقم الفاتورة','التاريخ','الكاشير','طريقة الدفع','الإجمالي'].join(',') + '\n';
+  const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة'};
+  list.forEach(inv=>{
+    csv += [inv.invoiceId, new Date(inv.dateTime).toLocaleString('ar-EG'), inv.cashier, payLabel[inv.paymentMethod], inv.total].join(',') + '\n';
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'تقرير-مبيعات-' + Date.now() + '.csv';
+  a.click();
 });
-document.getElementById('sup-send').addEventListener('click', async ()=>{
-  const msg = document.getElementById('sup-msg').value.trim();
-  if(!msg) return;
-  const payload = {username: currentUser ? currentUser.username : '', message: msg};
-  if(navigator.onLine){
-    try{
-      await api('submitSupport', payload);
-      document.getElementById('sup-note').textContent = 'تم إرسال طلبك بنجاح.';
-      setTimeout(()=>document.getElementById('support-modal').classList.remove('show'), 900);
-    }catch(e){ document.getElementById('sup-note').textContent = 'حصل خطأ، حاول تاني.'; }
-  } else {
-    const q = ls_get('abdo_pending_support', []);
-    q.push(payload); ls_set('abdo_pending_support', q);
-    document.getElementById('sup-note').textContent = 'مفيش نت.. هيتبعت أول ما يرجع الاتصال.';
-    setTimeout(()=>document.getElementById('support-modal').classList.remove('show'), 1200);
-  }
+
+document.getElementById('rep-pdf-btn').addEventListener('click', ()=>{
+  const list = filteredReportSales();
+  const total = list.reduce((s,i)=>s+i.total,0);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text('Abdo Hesabat - Sales Report', 14, 18);
+  doc.setFontSize(11);
+  doc.text('Invoices: ' + list.length + '   Total: ' + total.toFixed(2) + ' EGP', 14, 28);
+  let y = 40;
+  doc.setFontSize(10);
+  doc.text('Invoice ID', 14, y);
+  doc.text('Date', 70, y);
+  doc.text('Cashier', 120, y);
+  doc.text('Total', 160, y);
+  y += 6;
+  list.forEach(inv=>{
+    if(y > 280){ doc.addPage(); y = 20; }
+    doc.text(String(inv.invoiceId), 14, y);
+    doc.text(new Date(inv.dateTime).toLocaleDateString('en-GB'), 70, y);
+    doc.text(String(inv.cashier), 120, y);
+    doc.text(String(inv.total.toFixed(2)), 160, y);
+    y += 6;
+  });
+  doc.save('sales-report-' + Date.now() + '.pdf');
+});
+
+document.getElementById('rep-email-btn').addEventListener('click', async ()=>{
+  const note = document.getElementById('rep-note');
+  const email = prompt('اكتب الإيميل اللي هيتبعتله التقرير:');
+  if(!email) return;
+  if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت عشان تبعت إيميل.'; return; }
+  const period = document.getElementById('report-period').value;
+  note.textContent = 'جاري الإرسال...';
+  try{
+    await api('emailReport', {to: email, period});
+    note.textContent = 'تم إرسال التقرير على ' + email;
+  }catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
 });
 
 /* ================= تسجيل service worker ================= */
