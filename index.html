@@ -437,7 +437,7 @@ function fileToBase64(file){
 /* ================= الحالة ================= */
 let currentUser = ls_get('abdo_user', null);
 let products = ls_get('abdo_products', []);
-let appSettings = ls_get('abdo_settings', {storeName:'عبدو حسابات', country:'مصر', taxRate:14, vatNumber:'', logoUrl:''});
+let appSettings = ls_get('abdo_settings', {storeName:'احسبها', country:'مصر', taxRate:14, vatNumber:'', logoUrl:''});
 let cart = {};
 let activePay = 'cash';
 let activeCat = null;
@@ -966,7 +966,7 @@ document.getElementById('st-save-btn').addEventListener('click', async ()=>{
   const note = document.getElementById('st-note');
   if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت عشان تحفظ الإعدادات'; return; }
   const payload = {
-    storeName: document.getElementById('st-store-name').value.trim() || 'عبدو حسابات',
+    storeName: document.getElementById('st-store-name').value.trim() || 'احسبها',
     country: document.getElementById('st-country').value,
     taxRate: Number(document.getElementById('st-tax-rate').value) || 14,
     vatNumber: document.getElementById('st-vat-number').value.trim(),
