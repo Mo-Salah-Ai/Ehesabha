@@ -576,8 +576,8 @@ function applyBranding(){
   document.title = appSettings.storeName;
   const favicon = document.getElementById('dynamic-favicon');
   favicon.href = LOGO_URL;
-  document.getElementById('login-mark').innerHTML = '<img src="'+LOGO_URL+'" onerror="this.parentNode.textContent=\\'ح\\';">';
-  document.getElementById('app-mark').innerHTML = '<img src="'+LOGO_URL+'" onerror="this.parentNode.textContent=\\'ح\\';">';
+  document.getElementById('login-mark').innerHTML = '<img src="'+LOGO_URL+'" onerror="this.parentNode.textContent=\'ح\';">';
+  document.getElementById('app-mark').innerHTML = '<img src="'+LOGO_URL+'" onerror="this.parentNode.textContent=\'ح\';">';
   TAX_RATE_PCT = Number(appSettings.taxRate) || 14;
   document.getElementById('t-tax-label').textContent = 'الضريبة (' + TAX_RATE_PCT + '٪)';
 }
