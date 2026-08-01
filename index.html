@@ -468,31 +468,37 @@ function api(action, data){
 }
 
 /* ================= رفع صور (فورم + iframe + postMessage) ================= */
-function uploadImageViaForm(base64, fileName, mimeType){
-  return new Promise((resolve, reject)=>{
-    const reqId = 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    const iframeName = 'frame_' + reqId;
-    const iframe = document.createElement('iframe');
-    iframe.name = iframeName; iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-    const form = document.createElement('form');
-    form.method = 'POST'; form.action = API_URL; form.target = iframeName; form.style.display = 'none';
-    const addField = (n,v)=>{ const i=document.createElement('input'); i.type='hidden'; i.name=n; i.value=v; form.appendChild(i); };
-    addField('action','uploadImage');
-    addField('data', JSON.stringify({base64, fileName, mimeType, reqId}));
-    document.body.appendChild(form);
-    let done = false;
-    const onMsg = (ev)=>{
-      if(!ev.data || ev.data.reqId !== reqId) return;
-      done = true; window.removeEventListener('message', onMsg); clearTimeout(timer); cleanupDom();
-      if(ev.data.ok === false) reject(new Error(ev.data.error || 'فشل رفع الصورة'));
-      else resolve(ev.data);
+/* ================= تصغير الصور + رفعها على دفعات صغيرة (موثوق 100% لأنه بيستخدم نفس آلية JSONP) ================= */
+function resizeImageBase64(base64, maxDim, quality){
+  return new Promise((resolve)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      let w = img.width, h = img.height;
+      if(w > maxDim || h > maxDim){
+        if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; } else{ w = Math.round(w * maxDim / h); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
     };
-    window.addEventListener('message', onMsg);
-    const timer = setTimeout(()=>{ if(done) return; done = true; window.removeEventListener('message', onMsg); cleanupDom(); reject(new Error('انتهت مهلة رفع الصورة')); }, 30000);
-    function cleanupDom(){ if(form.parentNode) form.parentNode.removeChild(form); setTimeout(()=>{ if(iframe.parentNode) iframe.parentNode.removeChild(iframe); }, 1500); }
-    form.submit();
+    img.onerror = ()=>resolve(base64);
+    img.src = base64;
   });
+}
+
+async function uploadImageChunked(base64, fileName, mimeType, onProgress){
+  const resized = await resizeImageBase64(base64, 900, 0.72);
+  const raw = resized.indexOf(',') !== -1 ? resized.split(',').pop() : resized;
+  const chunkSize = 3000;
+  const chunks = [];
+  for(let i=0;i<raw.length;i+=chunkSize){ chunks.push(raw.slice(i, i+chunkSize)); }
+  const uploadId = 'up' + Date.now() + Math.random().toString(36).slice(2);
+  for(let i=0;i<chunks.length;i++){
+    await api('uploadImageChunk', {uploadId, chunkIndex:i, chunk:chunks[i]});
+    if(onProgress) onProgress(i+1, chunks.length);
+  }
+  return api('uploadImageFinish', {uploadId, totalChunks:chunks.length, fileName, mimeType:'image/jpeg'});
 }
 function fileToBase64(file){
   return new Promise((resolve, reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file); });
@@ -994,7 +1000,10 @@ document.getElementById('pm-save').addEventListener('click', async ()=>{
   if(!p.name || !p.category){ alert('اكتب اسم الصنف والفئة'); return; }
   if(!navigator.onLine){ alert('محتاج اتصال بالنت عشان تضيف أو تعدل صنف'); return; }
   try{
-    if(pendingImageBase64){ note.textContent = 'جاري رفع الصورة...'; const up = await uploadImageViaForm(pendingImageBase64, pendingImageMeta.name, pendingImageMeta.type); p.image = up.url; }
+    if(pendingImageBase64){
+      const up = await uploadImageChunked(pendingImageBase64, pendingImageMeta.name, pendingImageMeta.type, (done,total)=>{ note.textContent = 'جاري رفع الصورة... ('+done+'/'+total+')'; });
+      p.image = up.url;
+    }
     note.textContent = 'جاري الحفظ...';
     await api('saveProduct', p); await refreshProducts(); renderCats(); renderItems(); renderAdminProducts();
     document.getElementById('product-modal').classList.remove('show');
@@ -1100,7 +1109,10 @@ document.getElementById('em-save').addEventListener('click', async ()=>{
   if(!editingEmployeeUsername && !payload.password){ note.textContent = 'حط كلمة مرور للموظف الجديد'; return; }
   if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت'; return; }
   try{
-    if(pendingEmpImageBase64){ note.textContent = 'جاري رفع الصورة...'; const up = await uploadImageViaForm(pendingEmpImageBase64, pendingEmpImageMeta.name, pendingEmpImageMeta.type); payload.photo = up.url; }
+    if(pendingEmpImageBase64){
+      const up = await uploadImageChunked(pendingEmpImageBase64, pendingEmpImageMeta.name, pendingEmpImageMeta.type, (done,total)=>{ note.textContent = 'جاري رفع الصورة... ('+done+'/'+total+')'; });
+      payload.photo = up.url;
+    }
     note.textContent = 'جاري الحفظ...';
     await api('saveUser', payload);
     document.getElementById('employee-modal').classList.remove('show');
