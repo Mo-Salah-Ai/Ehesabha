@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>'احسبها'</title>
+<title>احسبها</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" id="dynamic-favicon" href="">
-<meta name="theme-color" content="#3f4a2b">
+<meta name="theme-color" content="#2c4a2a">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
@@ -18,6 +18,7 @@
     --ink:#1c1815; --paper:#f6f1e7; --card:#fffdf8; --line:#e4dac7;
     --olive:#5c6b3f; --olive-dark:#3f4a2b; --brick:#b1502f; --brick-dark:#8a3c22;
     --gold:#c8992b; --muted:#7a7264; --danger:#a83a3a; --shadow:0 2px 0 rgba(28,24,21,0.06); --radius:14px;
+    --theme-bg: #f6f1e7;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -25,6 +26,13 @@
     background-image:radial-gradient(circle at 1px 1px, rgba(28,24,21,0.05) 1px, transparent 0);background-size:22px 22px;}
   h1,h2,h3,.brand{font-family:'Cairo',sans-serif;}
   button,input,select,textarea{font-family:'Tajawal',sans-serif;}
+
+  /* أنماط الألوان الخمسة */
+  .theme-1{ --olive:#5c6b3f; --olive-dark:#3f4a2b; --brick:#b1502f; --gold:#c8992b; }
+  .theme-2{ --olive:#2c6b6b; --olive-dark:#1a4a4a; --brick:#d48c3a; --gold:#e8b85a; }
+  .theme-3{ --olive:#6b4f3f; --olive-dark:#4a342a; --brick:#8a6e3a; --gold:#c9a86b; }
+  .theme-4{ --olive:#4a6b7a; --olive-dark:#2a4a5a; --brick:#b15a5a; --gold:#d4a06a; }
+  .theme-5{ --olive:#7a5a6b; --olive-dark:#5a3a4a; --brick:#b17a5a; --gold:#c9a86b; }
 
   .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
   .login-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:32px 28px;width:100%;max-width:360px;box-shadow:var(--shadow);text-align:center;}
@@ -34,20 +42,21 @@
   .login-card .sub{font-size:12.5px;color:var(--muted);margin-bottom:22px;}
   .field{margin-bottom:12px;text-align:right;}
   .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px;font-weight:700;}
-  .field input,.field select{width:100%;padding:11px 12px;border-radius:10px;border:1.5px solid var(--line);font-size:14px;background:#fff;}
+  .field input,.field select,.field textarea{width:100%;padding:11px 12px;border-radius:10px;border:1.5px solid var(--line);font-size:14px;background:#fff;}
   .field input:focus,.field select:focus{outline:none;border-color:var(--brick);}
   .login-err{color:var(--danger);font-size:12.5px;margin-bottom:10px;min-height:16px;}
 
-  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--olive-dark);color:#f6f1e7;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--olive-dark);color:#f6f1e7;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,0.15);flex-wrap:wrap;gap:8px;}
   .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;}
   .brand .mark{width:34px;height:34px;border-radius:9px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--olive-dark);font-weight:800;border:2px solid #f6f1e7;overflow:hidden;}
   .brand .mark img{width:100%;height:100%;object-fit:cover;}
-  .topbar .right{display:flex;align-items:center;gap:10px;}
+  .topbar .right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .status-dot{width:9px;height:9px;border-radius:50%;background:#7fbf6a;}
   .status-dot.off{background:#d9534f;}
   .status-txt{font-size:11.5px;color:#e7e2d3;}
   .who{font-size:12.5px;color:#e7e2d3;background:rgba(255,255,255,0.08);padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:8px;}
   .who button{background:none;border:none;color:#f0c9c9;cursor:pointer;font-size:12px;font-weight:700;}
+  .lang-btn{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:4px 10px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:700;}
 
   .tabs{display:flex;gap:6px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);overflow-x:auto;position:sticky;top:60px;z-index:40;}
   .tab-btn{border:none;background:transparent;padding:9px 16px;border-radius:999px;font-weight:700;font-size:13.5px;color:var(--muted);cursor:pointer;white-space:nowrap;}
@@ -111,16 +120,14 @@
   .table-wrap table{min-width:560px;}
   th{text-align:right;color:var(--muted);font-weight:700;padding:8px 6px;border-bottom:1.5px solid var(--line);font-size:12.5px;}
   td{padding:10px 6px;border-bottom:1px solid var(--line);}
-  .badge{
-    padding:4px 12px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.2px;
-    display:inline-flex;align-items:center;gap:5px;box-shadow:0 1px 3px rgba(28,24,21,0.12);
-    border:1px solid rgba(255,255,255,0.6);
-  }
+  .badge{padding:4px 12px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.2px;display:inline-flex;align-items:center;gap:5px;box-shadow:0 1px 3px rgba(28,24,21,0.12);border:1px solid rgba(255,255,255,0.6);}
   .badge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.75;flex-shrink:0;}
   .badge.cash{background:linear-gradient(135deg,#eef4e2,#dce9c9);color:#3f4a2b;}
   .badge.card{background:linear-gradient(135deg,#f8ead9,#f1d7bc);color:#8a3c22;}
   .badge.pending{background:linear-gradient(135deg,#fbf1d9,#f4e0ac);color:#875b0b;}
   .badge.low{background:linear-gradient(135deg,#fae1e1,#f4cbcb);color:#a83a3a;}
+  .badge.online{background:linear-gradient(135deg,#d4edda,#b7ebc5);color:#155724;}
+  .badge.offline{background:linear-gradient(135deg,#f8d7da,#f5c6cb);color:#721c24;}
 
   .prod-thumb{width:38px;height:38px;border-radius:8px;object-fit:cover;background:var(--paper);}
   .small-btn{border:1.5px solid var(--line);background:var(--card);padding:5px 10px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:700;}
@@ -137,6 +144,7 @@
   .barcode-row input{flex:1;}
   #scanner-box{width:100%;border-radius:10px;overflow:hidden;margin-top:10px;display:none;}
   .img-preview{width:90px;height:90px;border-radius:10px;object-fit:cover;background:var(--paper);border:1.5px dashed var(--line);margin-top:8px;}
+  .img-preview-thumb{width:40px;height:40px;border-radius:50%;object-fit:cover;}
 
   .receipt{background:#fffdf6;width:100%;max-width:340px;border-radius:14px;padding:22px;font-family:'Cairo';text-align:center;}
   .receipt .ok{width:52px;height:52px;border-radius:50%;background:var(--olive);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px;}
@@ -146,13 +154,13 @@
 
   .fab{position:fixed;bottom:20px;left:20px;width:52px;height:52px;border-radius:50%;background:var(--olive-dark);color:#fff;border:none;font-size:22px;box-shadow:0 4px 12px rgba(0,0,0,0.25);cursor:pointer;z-index:60;}
   footer{text-align:center;color:var(--muted);font-size:12px;padding:26px 10px;}
+  .footer-credit{font-weight:700;color:var(--olive);}
 
-  /* ============ تحسينات التجاوب على الموبايل ============ */
   .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--olive-dark);color:#fff;
     padding:12px 22px;border-radius:12px;font-size:13.5px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,0.25);
     opacity:0;pointer-events:none;transition:.25s;z-index:200;white-space:nowrap;max-width:90vw;text-overflow:ellipsis;overflow:hidden;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-  .sync-btn{border:1.5px solid var(--line);background:var(--card);border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .sync-btn{border:1.5px solid var(--line);background:var(--card);border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;color:#1c1815;}
   .sync-btn .count{background:var(--brick);color:#fff;border-radius:999px;font-size:10.5px;padding:1px 7px;font-weight:800;}
 
   @media (max-width:880px){
@@ -160,7 +168,7 @@
   }
   @media (max-width:640px){
     .wrap{padding:12px;}
-    .topbar{padding:12px 14px;flex-wrap:wrap;gap:8px;}
+    .topbar{padding:12px 14px;}
     .brand{font-size:17px;}
     .who{font-size:11.5px;padding:5px 10px;}
     .panel{padding:14px;}
@@ -177,7 +185,7 @@
 
 <div class="login-wrap" id="login-screen">
   <div class="login-card">
-    <div class="mark" id="login-mark">♻</div>
+    <div class="mark" id="login-mark"><img src="https://www.appsheet.com:443/fsimage.png?appid=92827f74-7743-4345-8834-aae1dab8739d&datasource=google&filename=DocId%3D1T8Ex8TYj0CyvQcW0qhJnxba15OeIXRAo&signature=05f49bb18bf20959a30d6c66ed8589ae60415479fa1234bdaa3b1a0f311b6894&tableprovider=google&userid=5096537"></div>
     <h1 id="login-store-name">احسبها</h1>
     <div class="sub">نظام كاشير ومبيعات — سجّل دخولك</div>
     <div class="field"><label>اسم المستخدم</label><input id="li-user" placeholder="اكتب اسم المستخدم"></div>
@@ -189,11 +197,12 @@
 
 <div id="app" style="display:none;">
   <div class="topbar">
-    <div class="brand"><span class="mark" id="app-mark">ع</span> <span id="app-store-name">احسبها</span></div>
+    <div class="brand"><span class="mark" id="app-mark"><img src="https://www.appsheet.com:443/fsimage.png?appid=92827f74-7743-4345-8834-aae1dab8739d&datasource=google&filename=DocId%3D1T8Ex8TYj0CyvQcW0qhJnxba15OeIXRAo&signature=05f49bb18bf20959a30d6c66ed8589ae60415479fa1234bdaa3b1a0f311b6894&tableprovider=google&userid=5096537"></span> <span id="app-store-name">احسبها</span></div>
     <div class="right">
       <span class="status-dot" id="status-dot"></span>
       <span class="status-txt" id="status-txt">متصل</span>
       <button class="sync-btn" id="manual-sync-btn" title="مزامنة الفواتير المعلقة الآن">🔄 مزامنة <span class="count" id="pending-count" style="display:none;">0</span></button>
+      <button class="lang-btn" id="lang-toggle">🇸🇦 عربي</button>
       <div class="who"><span id="who-name"></span><button id="logout-btn">خروج</button></div>
     </div>
   </div>
@@ -203,8 +212,11 @@
     <button class="tab-btn" data-tab="dash">لوحة التحكم</button>
     <button class="tab-btn" data-tab="sales">المبيعات</button>
     <button class="tab-btn" data-tab="reports">التقارير</button>
+    <button class="tab-btn" data-tab="employees" id="tab-employees-btn" style="display:none;">الموظفين</button>
+    <button class="tab-btn" data-tab="manager" id="tab-manager-btn" style="display:none;">لوحة المدير</button>
     <button class="tab-btn" data-tab="admin" id="tab-admin-btn" style="display:none;">إدارة المنتجات</button>
     <button class="tab-btn" data-tab="settings" id="tab-settings-btn" style="display:none;">الإعدادات</button>
+    <button class="tab-btn" data-tab="data" id="tab-data-btn" style="display:none;">البيانات</button>
   </div>
 
   <div class="wrap">
@@ -301,12 +313,65 @@
       </div>
     </section>
 
-    <!-- ADMIN -->
+    <!-- EMPLOYEES -->
+    <section class="screen" id="screen-employees">
+      <div class="panel">
+        <h3>إدارة الموظفين <button class="btn-primary" style="width:auto;padding:8px 16px;font-size:13px;" id="add-employee-btn">+ موظف جديد</button></h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>الصورة</th><th>اسم المستخدم</th><th>الاسم</th><th>الصلاحية</th><th>الفرع</th><th>الحالة</th><th></th></tr></thead>
+          <tbody id="employees-body"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- MANAGER DASHBOARD -->
+    <section class="screen" id="screen-manager">
+      <div class="panel">
+        <h3>لوحة المدير التفاعلية</h3>
+        <div class="kpis">
+          <div class="kpi"><div class="lbl">موظفين أون لاين</div><div class="val" id="m-online">0</div></div>
+          <div class="kpi brick"><div class="lbl">موظفين أوف لاين</div><div class="val" id="m-offline">0</div></div>
+          <div class="kpi gold"><div class="lbl">إجمالي الموظفين</div><div class="val" id="m-total">0</div></div>
+          <div class="kpi"><div class="lbl">فروع مسموح أوف لاين</div><div class="val" id="m-branch-on">0</div></div>
+          <div class="kpi brick"><div class="lbl">فروع غير مسموح</div><div class="val" id="m-branch-off">0</div></div>
+          <div class="kpi gold"><div class="lbl">إجمالي الفروع</div><div class="val" id="m-branch-total">0</div></div>
+        </div>
+        <div class="charts-grid">
+          <div class="panel"><h3>حالة الموظفين</h3><canvas id="chart-employees" height="180"></canvas></div>
+          <div class="panel"><h3>حالة الفروع</h3><canvas id="chart-branches" height="180"></canvas></div>
+        </div>
+        <div class="panel">
+          <h3>قائمة الموظفين لحظياً</h3>
+          <div class="table-wrap"><table><thead><tr><th>الاسم</th><th>الفرع</th><th>الحالة</th><th>آخر نشاط</th><th>إجراء</th></tr></thead>
+          <tbody id="m-employees-list"></tbody></table></div>
+        </div>
+        <div class="panel">
+          <h3>إرسال تنبيه لموظف</h3>
+          <div class="field"><label>اختر الموظف</label><select id="m-notif-user"></select></div>
+          <div class="field"><label>الرسالة</label><textarea id="m-notif-msg" rows="2"></textarea></div>
+          <button class="btn-primary" style="width:auto;padding:10px 18px;" id="m-send-notif">إرسال</button>
+          <div id="m-notif-result" class="login-err" style="color:var(--olive-dark);margin-top:8px;"></div>
+        </div>
+        <div class="panel">
+          <h3>إضافة ملاحظة على موظف</h3>
+          <div class="field"><label>اختر الموظف</label><select id="m-note-user"></select></div>
+          <div class="field"><label>الملاحظة</label><textarea id="m-note-text" rows="2"></textarea></div>
+          <button class="btn-primary" style="width:auto;padding:10px 18px;" id="m-add-note">حفظ الملاحظة</button>
+          <div id="m-note-result" class="login-err" style="color:var(--olive-dark);margin-top:8px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADMIN PRODUCTS -->
     <section class="screen" id="screen-admin">
       <div class="panel">
         <h3>المنتجات <button class="btn-primary" style="width:auto;padding:8px 16px;font-size:13px;" id="add-product-btn">+ صنف جديد</button></h3>
+        <div class="field" style="max-width:220px;">
+          <label>الفرع</label>
+          <select id="admin-branch-filter"><option value="all">كل الفروع</option></select>
+        </div>
         <div class="table-wrap"><table>
-          <thead><tr><th></th><th>الاسم</th><th>الفئة</th><th>السعر</th><th>الباركود</th><th>المخزون</th><th></th></tr></thead>
+          <thead><tr><th></th><th>الاسم</th><th>الفئة</th><th>السعر</th><th>الباركود</th><th>المخزون</th><th>الفرع</th><th></th></tr></thead>
           <tbody id="admin-products-body"></tbody>
         </table></div>
       </div>
@@ -331,6 +396,23 @@
           <input type="file" id="st-logo-file" accept="image/*">
           <img id="st-logo-preview" class="img-preview" style="display:none;">
         </div>
+        <div class="field">
+          <label>نمط الألوان</label>
+          <select id="st-theme">
+            <option value="theme-1">الطبيعي (أخضر/بني)</option>
+            <option value="theme-2">المائي (أزرق/ذهبي)</option>
+            <option value="theme-3">الترابي (بني/ذهبي)</option>
+            <option value="theme-4">الهادئ (رمادي/أحمر)</option>
+            <option value="theme-5">الوردي (أرجواني/ذهبي)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>اللغة</label>
+          <select id="st-lang">
+            <option value="ar">العربية</option>
+            <option value="en">English</option>
+          </select>
+        </div>
         <div class="login-err" id="st-note" style="color:var(--olive-dark);"></div>
         <button class="btn-primary" id="st-save-btn" style="width:auto;padding:11px 22px;">حفظ الإعدادات</button>
         <p style="font-size:12px;color:var(--muted);margin-top:14px;">
@@ -340,10 +422,21 @@
         </p>
       </div>
     </section>
+
+    <!-- DATA ACCESS (للرئيس) -->
+    <section class="screen" id="screen-data">
+      <div class="panel">
+        <h3>البيانات المسجلة (كاملة) <button class="btn-primary" style="width:auto;padding:8px 16px;font-size:13px;" id="data-refresh-btn">🔄 تحديث</button></h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>الكاشير</th><th>الإجمالي</th><th>الفرع</th><th>الحالة</th><th></th></tr></thead>
+          <tbody id="data-body"></tbody>
+        </table></div>
+      </div>
+    </section>
   </div>
 
   <button class="fab" id="support-fab" title="دعم فني">🛟</button>
-  <footer>احسبها — البيانات بتتزامن مع التخزين أول ما يبقى فيه اتصال بالنت.</footer>
+  <footer>احسبها — البيانات بتتزامن مع Google Sheets أول ما يبقى فيه اتصال بالنت. <span class="footer-credit">Mo-Salah ... 2026</span></footer>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -371,19 +464,9 @@
     <div class="field"><label>الفئة</label><input id="pm-cat" placeholder="مشروبات / مأكولات / حلويات..."></div>
     <div class="field"><label>السعر (ج.م)</label><input id="pm-price" type="number" step="0.5"></div>
     <div class="field"><label>الكمية بالمخزون (سيبها فاضية لو مش عايز تتبعها)</label><input id="pm-stock" type="number" step="1"></div>
-    <div class="field">
-      <label>الباركود</label>
-      <div class="barcode-row">
-        <input id="pm-barcode" placeholder="امسح أو اكتب الباركود">
-        <button class="icon-btn" id="pm-scan-btn">📷</button>
-      </div>
-      <div id="scanner-box"></div>
-    </div>
-    <div class="field">
-      <label>صورة المنتج</label>
-      <input type="file" id="pm-image-file" accept="image/*">
-      <img id="pm-image-preview" class="img-preview" style="display:none;">
-    </div>
+    <div class="field"><label>الباركود</label><div class="barcode-row"><input id="pm-barcode" placeholder="امسح أو اكتب الباركود"><button class="icon-btn" id="pm-scan-btn">📷</button></div><div id="scanner-box"></div></div>
+    <div class="field"><label>الفرع</label><select id="pm-branch"></select></div>
+    <div class="field"><label>صورة المنتج</label><input type="file" id="pm-image-file" accept="image/*"><img id="pm-image-preview" class="img-preview" style="display:none;"></div>
     <div class="login-err" id="pm-note" style="color:var(--olive-dark);"></div>
     <div class="modal-actions">
       <button class="btn-ghost" id="pm-cancel">إلغاء</button>
@@ -392,10 +475,61 @@
   </div>
 </div>
 
+<!-- Employee modal -->
+<div class="modal-bg" id="employee-modal">
+  <div class="modal">
+    <h3 id="em-title">موظف جديد</h3>
+    <div class="field"><label>اسم المستخدم</label><input id="em-username"></div>
+    <div class="field"><label>الاسم</label><input id="em-name"></div>
+    <div class="field"><label>كلمة المرور</label><input id="em-password" type="password"></div>
+    <div class="field"><label>الصلاحية</label>
+      <select id="em-role">
+        <option value="cashier">كاشير</option>
+        <option value="admin">مدير</option>
+        <option value="chief">رئيس</option>
+      </select>
+    </div>
+    <div class="field"><label>الفرع</label><select id="em-branch"></select></div>
+    <div class="field"><label>صورة الموظف</label><input type="file" id="em-image-file" accept="image/*"><img id="em-image-preview" class="img-preview" style="display:none;"></div>
+    <div class="login-err" id="em-note" style="color:var(--olive-dark);"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="em-cancel">إلغاء</button>
+      <button class="btn-primary" id="em-save">حفظ</button>
+    </div>
+  </div>
+</div>
+
 <script>
-/* ================= الإعدادات ================= */
+/* ================= الإعدادات الأساسية ================= */
+const APP_NAME = 'احسبها';
+const DEFAULT_LOGO = 'https://www.appsheet.com:443/fsimage.png?appid=92827f74-7743-4345-8834-aae1dab8739d&datasource=google&filename=DocId%3D1T8Ex8TYj0CyvQcW0qhJnxba15OeIXRAo&signature=05f49bb18bf20959a30d6c66ed8589ae60415479fa1234bdaa3b1a0f311b6894&tableprovider=google&userid=5096537';
 const API_URL = "https://script.google.com/macros/s/AKfycbzzDoTPrTxpQxABx2hsrOMBvcNoim7fJ6fksXY9sNY18V7i7Us9eU-J5F3CQCwZmWzh/exec";
-let TAX_RATE_PCT = 14; // بيتحدث من الإعدادات
+let TAX_RATE_PCT = 14;
+let currentUser = ls_get('abdo_user', null);
+let appSettings = ls_get('abdo_settings', {
+  storeName: APP_NAME,
+  country: 'مصر',
+  taxRate: 14,
+  vatNumber: '',
+  logoUrl: DEFAULT_LOGO,
+  theme: 'theme-1',
+  lang: 'ar'
+});
+let products = ls_get('abdo_products', []);
+let employees = ls_get('abdo_employees', []);
+let branches = ls_get('abdo_branches', [{id:'main', name:'الفرع الرئيسي', allowOffline:true}]);
+let notifications = ls_get('abdo_notifications', []);
+let notes = ls_get('abdo_notes', []);
+let onlineUsers = {};
+let sessionSales = ls_get('abdo_sales_log', []);
+let cart = {};
+let activePay = 'cash';
+let activeCat = null;
+let lastInvoice = null;
+let weekChart = null, payChart = null, empChart = null, branchChart = null;
+let editingProductId = null, editingEmployeeId = null;
+let pendingImageBase64 = null, pendingImageMeta = null;
+let isEnglish = false;
 
 /* ================= أدوات عامة ================= */
 function fmt(n){ return (n||0).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -404,7 +538,7 @@ function ls_get(k, def){ try{ const v = JSON.parse(localStorage.getItem(k)); ret
 function ls_set(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
 function csvEscape(v){ return '"' + String(v==null?'':v).replace(/"/g,'""') + '"'; }
 
-/* ================= JSONP للعمليات العادية ================= */
+/* ================= JSONP ================= */
 let jsonpCounter = 0;
 function api(action, data){
   return new Promise((resolve, reject)=>{
@@ -426,7 +560,7 @@ function api(action, data){
   });
 }
 
-/* ================= رفع صور (فورم + iframe + postMessage) ================= */
+/* ================= رفع صور ================= */
 function uploadImageViaForm(base64, fileName, mimeType){
   return new Promise((resolve, reject)=>{
     const reqId = 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2);
@@ -470,23 +604,12 @@ function fileToBase64(file){
   });
 }
 
-/* ================= الحالة ================= */
-let currentUser = ls_get('abdo_user', null);
-let products = ls_get('abdo_products', []);
-let appSettings = ls_get('abdo_settings', {storeName:'احسبها', country:'مصر', taxRate:14, vatNumber:'', logoUrl:''});
-let cart = {};
-let activePay = 'cash';
-let activeCat = null;
-let sessionSales = ls_get('abdo_sales_log', []);
-let lastInvoice = null;
-let weekChart = null, payChart = null;
-
 /* ================= حالة الاتصال ================= */
 function updateStatus(){
   const dot = document.getElementById('status-dot');
   const txt = document.getElementById('status-txt');
-  if(navigator.onLine){ dot.classList.remove('off'); txt.textContent='متصل'; syncPending(); }
-  else{ dot.classList.add('off'); txt.textContent='أوف لاين'; }
+  if(navigator.onLine){ dot.classList.remove('off'); txt.textContent= isEnglish ? 'Online' : 'متصل'; syncPending(); }
+  else{ dot.classList.add('off'); txt.textContent= isEnglish ? 'Offline' : 'أوف لاين'; }
 }
 window.addEventListener('online', updateStatus);
 window.addEventListener('offline', updateStatus);
@@ -498,7 +621,7 @@ async function doLogin(){
   const p = document.getElementById('li-pass').value.trim();
   const errEl = document.getElementById('login-err');
   errEl.textContent = '';
-  if(!u || !p){ errEl.textContent='اكتب اسم المستخدم وكلمة المرور'; return; }
+  if(!u || !p){ errEl.textContent= isEnglish ? 'Enter username and password' : 'اكتب اسم المستخدم وكلمة المرور'; return; }
 
   if(navigator.onLine){
     try{
@@ -508,14 +631,16 @@ async function doLogin(){
       ls_set('abdo_last_login', {u,p});
       await refreshProducts();
       await refreshSettings();
+      await refreshEmployees();
+      await refreshBranches();
       enterApp();
     }catch(e){
-      errEl.textContent = e.message === 'offline' ? 'مفيش نت، وبيانات الدخول دي مش محفوظة قبل كده' : e.message;
+      errEl.textContent = e.message === 'offline' ? (isEnglish ? 'No internet and credentials not cached' : 'مفيش نت، وبيانات الدخول دي مش محفوظة قبل كده') : e.message;
     }
   } else {
     const last = ls_get('abdo_last_login', null);
     if(last && last.u===u && last.p===p && currentUser){ enterApp(); }
-    else{ errEl.textContent = 'مفيش نت دلوقتي. لازم تدخل أونلاين مرة واحدة الأول.'; }
+    else{ errEl.textContent = isEnglish ? 'No internet. Please login online first.' : 'مفيش نت دلوقتي. لازم تدخل أونلاين مرة واحدة الأول.'; }
   }
 }
 
@@ -530,21 +655,39 @@ function applyBranding(){
     document.getElementById('app-mark').innerHTML = '<img src="'+appSettings.logoUrl+'">';
   }
   TAX_RATE_PCT = Number(appSettings.taxRate) || 14;
-  document.getElementById('t-tax-label').textContent = 'الضريبة (' + TAX_RATE_PCT + '٪)';
+  document.getElementById('t-tax-label').textContent = (isEnglish ? 'Tax' : 'الضريبة') + ' (' + TAX_RATE_PCT + '%)';
+  // تطبيق الثيم
+  document.body.className = appSettings.theme || 'theme-1';
+  // اللغة
+  const lang = appSettings.lang || 'ar';
+  isEnglish = (lang === 'en');
+  document.getElementById('lang-toggle').textContent = isEnglish ? '🇸🇦 عربي' : '🇬🇧 English';
+  // يمكن تحديث نصوص أخرى حسب اللغة - تبسيطاً نكتفي بتحديث بعض العناصر
 }
 applyBranding();
 
 function enterApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
-  document.getElementById('who-name').textContent = currentUser.name + ' ('+(currentUser.role==='admin'?'أدمن':'كاشير')+')';
-  document.getElementById('tab-admin-btn').style.display = currentUser.role==='admin' ? 'inline-block' : 'none';
-  document.getElementById('tab-settings-btn').style.display = currentUser.role==='admin' ? 'inline-block' : 'none';
-  document.getElementById('load-full-history-btn').style.display = currentUser.role==='admin' ? 'inline-block' : 'none';
+  document.getElementById('who-name').textContent = currentUser.name + ' ('+(currentUser.role==='admin'?'مدير':currentUser.role==='chief'?'رئيس':'كاشير')+')';
+  const isAdmin = (currentUser.role === 'admin' || currentUser.role === 'chief');
+  const isChief = (currentUser.role === 'chief');
+  document.getElementById('tab-admin-btn').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('tab-settings-btn').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('tab-employees-btn').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('tab-manager-btn').style.display = isAdmin ? 'inline-block' : 'none';
+  document.getElementById('tab-data-btn').style.display = isChief ? 'inline-block' : 'none';
+  document.getElementById('load-full-history-btn').style.display = isAdmin ? 'inline-block' : 'none';
   applyBranding();
   renderCats(); renderItems(); renderCart();
   updatePendingCount();
   updateStatus();
+  populateBranchSelects();
+  renderEmployees();
+  renderManagerDashboard();
+  renderData();
+  // تحديث دوري لحالة الموظفين كل 30 ثانية
+  setInterval(()=>{ if(navigator.onLine) refreshEmployees(); }, 30000);
 }
 
 document.getElementById('logout-btn').addEventListener('click', ()=>{
@@ -553,7 +696,21 @@ document.getElementById('logout-btn').addEventListener('click', ()=>{
   document.getElementById('login-screen').style.display='flex';
 });
 
-updateStatus();
+/* ================= تبديل اللغة ================= */
+document.getElementById('lang-toggle').addEventListener('click', ()=>{
+  appSettings.lang = appSettings.lang === 'ar' ? 'en' : 'ar';
+  ls_set('abdo_settings', appSettings);
+  applyBranding();
+  // إعادة تحميل النصوص الديناميكية
+  updateStatus();
+  renderDashboard();
+  renderSales();
+  renderReport();
+  renderEmployees();
+  renderManagerDashboard();
+  renderData();
+  showToast(isEnglish ? 'Language changed' : 'تم تغيير اللغة');
+});
 
 /* ================= تبويبات ================= */
 document.querySelectorAll('.tab-btn').forEach(btn=>{
@@ -567,6 +724,9 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(btn.dataset.tab==='reports') renderReport();
     if(btn.dataset.tab==='admin') renderAdminProducts();
     if(btn.dataset.tab==='settings') loadSettingsForm();
+    if(btn.dataset.tab==='employees') renderEmployees();
+    if(btn.dataset.tab==='manager') renderManagerDashboard();
+    if(btn.dataset.tab==='data') renderData();
   });
 });
 
@@ -579,6 +739,25 @@ async function refreshSettings(){
   try{ const r = await api('getSettings', {}); appSettings = r.settings; ls_set('abdo_settings', appSettings); applyBranding(); }
   catch(e){}
 }
+async function refreshEmployees(){
+  try{ const r = await api('getEmployees', {}); employees = r.employees; ls_set('abdo_employees', employees); }
+  catch(e){}
+}
+async function refreshBranches(){
+  try{ const r = await api('getBranches', {}); branches = r.branches; ls_set('abdo_branches', branches); }
+  catch(e){}
+}
+function populateBranchSelects(){
+  const selects = ['pm-branch', 'em-branch', 'admin-branch-filter'];
+  selects.forEach(id=>{
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    const current = sel.value;
+    sel.innerHTML = branches.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+    if(id === 'admin-branch-filter') sel.innerHTML = '<option value="all">كل الفروع</option>' + sel.innerHTML;
+    if(current) sel.value = current;
+  });
+}
 
 function renderCats(){
   const cats = [...new Set(products.map(p=>p.category).filter(Boolean))];
@@ -589,7 +768,6 @@ function renderCats(){
     chip.addEventListener('click', ()=>{ activeCat = chip.dataset.cat; renderCats(); renderItems(); });
   });
 }
-
 function renderItems(filterText){
   let list = products.filter(p=>p.active !== false);
   if(filterText){
@@ -599,11 +777,11 @@ function renderItems(filterText){
     list = list.filter(p=>p.category===activeCat);
   }
   const grid = document.getElementById('items');
-  if(list.length===0){ grid.innerHTML = '<div style="color:var(--muted);grid-column:1/-1;text-align:center;padding:20px;">مفيش نتايج</div>'; return; }
+  if(list.length===0){ grid.innerHTML = '<div style="color:var(--muted);grid-column:1/-1;text-align:center;padding:20px;">'+(isEnglish?'No results':'مفيش نتايج')+'</div>'; return; }
   grid.innerHTML = list.map(it=>{
     const hasStock = it.stock !== '' && it.stock !== undefined && it.stock !== null;
     const outOfStock = hasStock && Number(it.stock) <= 0;
-    const stockHtml = hasStock ? `<div class="item-stock ${Number(it.stock)<=5?'low':''}">${outOfStock?'خلص من المخزون':'متبقي '+it.stock}</div>` : '';
+    const stockHtml = hasStock ? `<div class="item-stock ${Number(it.stock)<=5?'low':''}">${outOfStock?(isEnglish?'Out of stock':'خلص من المخزون'):(isEnglish?'Remaining '+it.stock:'متبقي '+it.stock)}</div>` : '';
     return `
     <div class="item-card ${outOfStock?'out':''}" data-id="${it.id}">
       <div class="item-thumb">${it.image ? `<img src="${it.image}">` : '🧾'}</div>
@@ -619,7 +797,6 @@ function renderItems(filterText){
     });
   });
 }
-
 document.getElementById('search-box').addEventListener('input', (e)=>{ renderItems(e.target.value); });
 
 let barcodeBuffer = '';
@@ -629,23 +806,20 @@ document.addEventListener('keydown', (e)=>{
   if(e.key === 'Enter'){ if(barcodeBuffer.length >= 4) handleScannedBarcode(barcodeBuffer); barcodeBuffer = ''; return; }
   if(e.key.length === 1){ barcodeBuffer += e.key; clearTimeout(barcodeTimer); barcodeTimer = setTimeout(()=>{ barcodeBuffer=''; }, 300); }
 });
-
 function handleScannedBarcode(code){
   const item = products.find(p=>String(p.barcode)===String(code));
-  if(item){ addToCart(item); } else{ alert('مفيش صنف بالباركود ده: '+code); }
+  if(item){ addToCart(item); } else{ alert(isEnglish?'No product with this barcode':'مفيش صنف بالباركود ده: '+code); }
 }
-
 document.getElementById('scan-btn').addEventListener('click', ()=>{ openCameraScanner((code)=>{ handleScannedBarcode(code); }); });
-
 function openCameraScanner(onResult){
   const box = document.createElement('div');
   box.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
-  box.innerHTML = '<div id="cam-scan-region" style="width:100%;max-width:360px;border-radius:12px;overflow:hidden;"></div><button id="cam-scan-close" style="margin-top:16px;padding:10px 24px;border-radius:10px;border:none;background:#fff;font-weight:700;cursor:pointer;">إلغاء</button>';
+  box.innerHTML = '<div id="cam-scan-region" style="width:100%;max-width:360px;border-radius:12px;overflow:hidden;"></div><button id="cam-scan-close" style="margin-top:16px;padding:10px 24px;border-radius:10px;border:none;background:#fff;font-weight:700;cursor:pointer;">'+(isEnglish?'Cancel':'إلغاء')+'</button>';
   document.body.appendChild(box);
   const qr = new Html5Qrcode('cam-scan-region');
   qr.start({facingMode:'environment'}, {fps:10, qrbox:220}, (decodedText)=>{
     qr.stop().then(()=>{ document.body.removeChild(box); onResult(decodedText); });
-  }).catch(()=>{ alert('مقدرش أفتح الكاميرا'); document.body.removeChild(box); });
+  }).catch(()=>{ alert(isEnglish?'Cannot open camera':'مقدرش أفتح الكاميرا'); document.body.removeChild(box); });
   document.getElementById('cam-scan-close').addEventListener('click', ()=>{ qr.stop().catch(()=>{}); document.body.removeChild(box); });
 }
 
@@ -653,7 +827,7 @@ function openCameraScanner(onResult){
 function addToCart(item){
   const inCart = cart[item.id] ? cart[item.id].qty : 0;
   const hasStock = item.stock !== '' && item.stock !== undefined && item.stock !== null;
-  if(hasStock && inCart + 1 > Number(item.stock)){ alert('الكمية المتاحة في المخزون خلصت'); return; }
+  if(hasStock && inCart + 1 > Number(item.stock)){ alert(isEnglish?'Not enough stock':'الكمية المتاحة في المخزون خلصت'); return; }
   if(!cart[item.id]) cart[item.id] = {...item, qty:0};
   cart[item.id].qty++;
   renderCart();
@@ -662,7 +836,7 @@ function changeQty(id, delta){
   if(!cart[id]) return;
   if(delta > 0){
     const hasStock = cart[id].stock !== '' && cart[id].stock !== undefined && cart[id].stock !== null;
-    if(hasStock && cart[id].qty + 1 > Number(cart[id].stock)){ alert('الكمية المتاحة في المخزون خلصت'); return; }
+    if(hasStock && cart[id].qty + 1 > Number(cart[id].stock)){ alert(isEnglish?'Not enough stock':'الكمية المتاحة في المخزون خلصت'); return; }
   }
   cart[id].qty += delta;
   if(cart[id].qty<=0) delete cart[id];
@@ -677,7 +851,7 @@ function renderCart(){
   const clearBtn = document.getElementById('clear-btn');
 
   if(entries.length===0){
-    body.innerHTML = '<div class="cart-empty">السلة فاضية.. اختار أصناف من القايمة</div>';
+    body.innerHTML = '<div class="cart-empty">'+(isEnglish?'Cart is empty.. select items from the list':'السلة فاضية.. اختار أصناف من القايمة')+'</div>';
     totalsEl.style.display='none'; payEl.style.display='none'; checkoutBtn.disabled=true; clearBtn.style.display='none';
     return;
   }
@@ -720,6 +894,7 @@ document.getElementById('checkout-btn').addEventListener('click', async ()=>{
     items: entries.map(e=>({id:e.id, n:e.name, qty:e.qty, p:e.price})),
     subtotal: sub, tax, total: grand,
     paymentMethod: activePay,
+    branch: appSettings.currentBranch || 'main',
     synced: false
   };
 
@@ -728,7 +903,6 @@ document.getElementById('checkout-btn').addEventListener('click', async ()=>{
   queueSale(invoice);
   lastInvoice = invoice;
 
-  // تحديث المخزون محليًا فورًا (هيتزامن مع السيرفر أول ما يوصل نت)
   entries.forEach(e=>{
     const p = products.find(x=>x.id===e.id);
     if(p && p.stock !== '' && p.stock !== undefined && p.stock !== null){ p.stock = Math.max(0, Number(p.stock) - e.qty); }
@@ -736,9 +910,9 @@ document.getElementById('checkout-btn').addEventListener('click', async ()=>{
   ls_set('abdo_products', products);
 
   const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة'}[activePay];
-  document.getElementById('r-num').textContent = 'فاتورة رقم '+invoice.invoiceId;
+  document.getElementById('r-num').textContent = (isEnglish?'Invoice No.':'فاتورة رقم ')+invoice.invoiceId;
   document.getElementById('r-amt').textContent = fmt(grand)+' ج.م';
-  document.getElementById('r-pay').textContent = 'الدفع: '+payLabel;
+  document.getElementById('r-pay').textContent = (isEnglish?'Payment: ':'الدفع: ')+payLabel;
   document.getElementById('receipt-modal').classList.add('show');
 
   cart = {}; renderCart(); renderItems();
@@ -749,8 +923,6 @@ document.getElementById('r-print').addEventListener('click', ()=>{ if(lastInvoic
 
 function queueSale(invoice){ const q = ls_get('abdo_pending_sales', []); q.push(invoice); ls_set('abdo_pending_sales', q); updatePendingCount(); }
 
-/* ================= إشعارات (Toast) ================= */
-let toastTimer = null;
 function showToast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -758,6 +930,7 @@ function showToast(msg){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>{ t.classList.remove('show'); }, 3200);
 }
+let toastTimer = null;
 
 function updatePendingCount(){
   const q = ls_get('abdo_pending_sales', []);
@@ -765,18 +938,16 @@ function updatePendingCount(){
   if(q.length > 0){ badge.style.display='inline-block'; badge.textContent = q.length; }
   else{ badge.style.display='none'; }
 }
-
 document.getElementById('manual-sync-btn').addEventListener('click', async ()=>{
   const q = ls_get('abdo_pending_sales', []);
-  if(!navigator.onLine){ showToast('⚠️ مفيش اتصال بالنت دلوقتي'); return; }
-  if(q.length === 0){ showToast('✅ كل الفواتير متزامنة، مفيش حاجة معلقة'); return; }
-  showToast('⏳ جاري مزامنة ' + q.length + ' فاتورة...');
+  if(!navigator.onLine){ showToast(isEnglish?'⚠️ No internet connection':'⚠️ مفيش اتصال بالنت دلوقتي'); return; }
+  if(q.length === 0){ showToast(isEnglish?'✅ All invoices synced':'✅ كل الفواتير متزامنة، مفيش حاجة معلقة'); return; }
+  showToast((isEnglish?'Syncing ':'⏳ جاري مزامنة ')+q.length+(isEnglish?' invoices...':' فاتورة...'));
   await syncPending();
   const remaining = ls_get('abdo_pending_sales', []);
-  if(remaining.length === 0) showToast('✅ تمت مزامنة كل الفواتير بنجاح');
-  else showToast('⚠️ اتزامن جزء، لسه ' + remaining.length + ' فاتورة معلقة');
+  if(remaining.length === 0) showToast(isEnglish?'✅ All invoices synced successfully':'✅ تمت مزامنة كل الفواتير بنجاح');
+  else showToast((isEnglish?'⚠️ Synced partially, ':'⚠️ اتزامن جزء، لسه ')+remaining.length+(isEnglish?' invoices pending':' فاتورة معلقة'));
 });
-
 async function syncPending(){
   if(!navigator.onLine) return;
   const q = ls_get('abdo_pending_sales', []);
@@ -795,12 +966,11 @@ async function syncPending(){
 }
 setInterval(syncPending, 15000);
 
-/* ================= تحميل السجل الكامل من الشيت (أدمن) ================= */
 document.getElementById('load-full-history-btn').addEventListener('click', async ()=>{
   const btn = document.getElementById('load-full-history-btn');
-  if(!navigator.onLine){ showToast('⚠️ محتاج اتصال بالنت عشان تحمّل السجل الكامل'); return; }
+  if(!navigator.onLine){ showToast(isEnglish?'⚠️ Need internet to load full history':'⚠️ محتاج اتصال بالنت عشان تحمّل السجل الكامل'); return; }
   const original = btn.textContent;
-  btn.textContent = 'جاري التحميل...'; btn.disabled = true;
+  btn.textContent = isEnglish?'Loading...':'جاري التحميل...'; btn.disabled = true;
   try{
     const r = await api('getSalesReport', {});
     const serverInvoices = (r.sales || []).map(s=>{
@@ -809,7 +979,7 @@ document.getElementById('load-full-history-btn').addEventListener('click', async
       return {
         invoiceId: s.invoiceId, dateTime: s.dateTime, cashier: s.cashier, items: items,
         subtotal: Number(s.subtotal), tax: Number(s.tax), total: Number(s.total),
-        paymentMethod: s.paymentMethod, synced: true
+        paymentMethod: s.paymentMethod, branch: s.branch || 'main', synced: true
       };
     });
     const map = {};
@@ -817,8 +987,8 @@ document.getElementById('load-full-history-btn').addEventListener('click', async
     sessionSales = Object.values(map).sort((a,b)=> new Date(b.dateTime) - new Date(a.dateTime));
     ls_set('abdo_sales_log', sessionSales);
     renderSales(); renderDashboard();
-    showToast('✅ اتحمّل السجل الكامل: ' + serverInvoices.length + ' فاتورة من الشيت');
-  }catch(e){ showToast('⚠️ حصل خطأ: ' + e.message); }
+    showToast((isEnglish?'✅ Loaded full history: ':'✅ اتحمّل السجل الكامل: ')+serverInvoices.length+(isEnglish?' invoices from sheet':' فاتورة من الشيت'));
+  }catch(e){ showToast((isEnglish?'⚠️ Error: ':'⚠️ حصل خطأ: ')+e.message); }
   btn.textContent = original; btn.disabled = false;
 });
 
@@ -838,13 +1008,11 @@ function buildZatcaQR(sellerName, vatNumber, timestampISO, total, vatAmount){
   let binary=''; buf.forEach(b=>binary += String.fromCharCode(b));
   return btoa(binary);
 }
-
 function printReceipt(invoice){
   const w = window.open('', '_blank', 'width=380,height=650');
   const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة'}[invoice.paymentMethod];
   const isKsa = appSettings.country === 'السعودية';
   const qrData = isKsa ? buildZatcaQR(appSettings.storeName, appSettings.vatNumber, invoice.dateTime, invoice.total, invoice.tax) : '';
-
   w.document.write(`<html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>فاتورة ${invoice.invoiceId}</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></` + `script>
   <style>
@@ -880,7 +1048,7 @@ function printReceipt(invoice){
   w.document.close();
 }
 
-/* ================= لوحة التحكم + الرسوم البيانية ================= */
+/* ================= لوحة التحكم ================= */
 function renderDashboard(){
   const all = [...sessionSales];
   const total = all.reduce((s,i)=>s+i.total,0);
@@ -896,7 +1064,7 @@ function renderDashboard(){
   const rows = Object.entries(agg).sort((a,b)=>b[1].qty-a[1].qty);
   const tbody = document.getElementById('top-items');
   tbody.innerHTML = rows.length? rows.map(([n,d])=>`<tr><td>${n}</td><td>${d.qty}</td><td>${fmt(d.total)} ج.م</td></tr>`).join('')
-    : '<tr><td colspan="3" style="color:var(--muted);text-align:center;">لسه مفيش مبيعات</td></tr>';
+    : '<tr><td colspan="3" style="color:var(--muted);text-align:center;">'+(isEnglish?'No sales yet':'لسه مفيش مبيعات')+'</td></tr>';
 
   const days = [];
   for(let i=6;i>=0;i--){ const d = new Date(); d.setDate(d.getDate()-i); days.push(d); }
@@ -905,11 +1073,10 @@ function renderDashboard(){
     return all.filter(inv=>new Date(inv.dateTime).toDateString()===key).reduce((s,i)=>s+i.total,0);
   });
   const dayLabels = days.map(d=>d.toLocaleDateString('ar-EG',{weekday:'short'}));
-
   if(weekChart) weekChart.destroy();
   weekChart = new Chart(document.getElementById('chart-week'), {
     type:'bar',
-    data:{ labels:dayLabels, datasets:[{label:'المبيعات', data:dayTotals, backgroundColor:'#5c6b3f', borderRadius:6}] },
+    data:{ labels:dayLabels, datasets:[{label:isEnglish?'Sales':'المبيعات', data:dayTotals, backgroundColor:'#5c6b3f', borderRadius:6}] },
     options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
   });
 
@@ -918,7 +1085,7 @@ function renderDashboard(){
   if(payChart) payChart.destroy();
   payChart = new Chart(document.getElementById('chart-pay'), {
     type:'doughnut',
-    data:{ labels:['كاش','فيزا','محفظة'], datasets:[{data:[payTotals.cash, payTotals.card, payTotals.wallet], backgroundColor:['#5c6b3f','#b1502f','#c8992b']}] },
+    data:{ labels:[isEnglish?'Cash':'كاش', isEnglish?'Card':'فيزا', isEnglish?'Wallet':'محفظة'], datasets:[{data:[payTotals.cash, payTotals.card, payTotals.wallet], backgroundColor:['#5c6b3f','#b1502f','#c8992b']}] },
     options:{ plugins:{legend:{position:'bottom'}} }
   });
 }
@@ -926,8 +1093,9 @@ function renderDashboard(){
 /* ================= سجل المبيعات ================= */
 function renderSales(){
   const tbody = document.getElementById('sales-body');
-  if(sessionSales.length===0){ tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px;">مفيش فواتير لسه</td></tr>'; return; }
+  if(sessionSales.length===0){ tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px;">'+(isEnglish?'No invoices yet':'مفيش فواتير لسه')+'</td></tr>'; return; }
   const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة'};
+  const statusText = (s)=> s.synced ? (isEnglish?'Synced':'متزامن') : (isEnglish?'Pending sync':'في انتظار المزامنة');
   tbody.innerHTML = sessionSales.map((inv,idx)=>`
     <tr>
       <td>${inv.invoiceId}</td>
@@ -935,159 +1103,13 @@ function renderSales(){
       <td>${inv.cashier}</td>
       <td><span class="badge ${inv.paymentMethod==='cash'?'cash':'card'}">${payLabel[inv.paymentMethod]}</span></td>
       <td>${fmt(inv.total)} ج.م</td>
-      <td>${inv.synced ? '<span class="badge cash">متزامن</span>' : '<span class="badge pending">في انتظار المزامنة</span>'}</td>
+      <td><span class="badge ${inv.synced?'cash':'pending'}">${statusText(inv)}</span></td>
       <td><button class="small-btn" data-idx="${idx}" data-act="print-sale">🖨</button></td>
     </tr>`).join('');
   tbody.querySelectorAll('[data-act="print-sale"]').forEach(b=>{
     b.addEventListener('click', ()=>{ printReceipt(sessionSales[Number(b.dataset.idx)]); });
   });
 }
-
-/* ================= إدارة المنتجات (أدمن) ================= */
-let editingProductId = null;
-let pendingImageBase64 = null;
-let pendingImageMeta = null;
-
-document.getElementById('add-product-btn').addEventListener('click', ()=>openProductModal());
-function openProductModal(product){
-  editingProductId = product ? product.id : null;
-  pendingImageBase64 = null; pendingImageMeta = null;
-  document.getElementById('pm-title').textContent = product ? 'تعديل صنف' : 'صنف جديد';
-  document.getElementById('pm-name').value = product ? product.name : '';
-  document.getElementById('pm-cat').value = product ? product.category : '';
-  document.getElementById('pm-price').value = product ? product.price : '';
-  document.getElementById('pm-stock').value = product && product.stock !== '' && product.stock !== undefined ? product.stock : '';
-  document.getElementById('pm-barcode').value = product ? product.barcode : '';
-  document.getElementById('pm-note').textContent = '';
-  const preview = document.getElementById('pm-image-preview');
-  if(product && product.image){ preview.src = product.image; preview.style.display='block'; } else { preview.style.display='none'; }
-  document.getElementById('pm-image-file').value = '';
-  document.getElementById('product-modal').classList.add('show');
-}
-document.getElementById('pm-cancel').addEventListener('click', ()=>{ document.getElementById('product-modal').classList.remove('show'); });
-document.getElementById('pm-scan-btn').addEventListener('click', ()=>{ openCameraScanner((code)=>{ document.getElementById('pm-barcode').value = code; }); });
-
-document.getElementById('pm-image-file').addEventListener('change', async (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  const base64 = await fileToBase64(file);
-  pendingImageBase64 = base64; pendingImageMeta = {name:file.name, type:file.type};
-  const preview = document.getElementById('pm-image-preview');
-  preview.src = base64; preview.style.display='block';
-});
-
-document.getElementById('pm-save').addEventListener('click', async ()=>{
-  const note = document.getElementById('pm-note');
-  const p = {
-    id: editingProductId,
-    name: document.getElementById('pm-name').value.trim(),
-    category: document.getElementById('pm-cat').value.trim(),
-    price: Number(document.getElementById('pm-price').value)||0,
-    stock: document.getElementById('pm-stock').value === '' ? '' : Number(document.getElementById('pm-stock').value),
-    barcode: document.getElementById('pm-barcode').value.trim(),
-    active: true,
-    image: document.getElementById('pm-image-preview').style.display==='block' && !pendingImageBase64 ? document.getElementById('pm-image-preview').src : ''
-  };
-  if(!p.name || !p.category){ alert('اكتب اسم الصنف والفئة'); return; }
-  if(!navigator.onLine){ alert('محتاج اتصال بالنت عشان تضيف أو تعدل صنف'); return; }
-
-  try{
-    if(pendingImageBase64){
-      note.textContent = 'جاري رفع الصورة...';
-      const up = await uploadImageViaForm(pendingImageBase64, pendingImageMeta.name, pendingImageMeta.type);
-      p.image = up.url;
-    }
-    note.textContent = 'جاري الحفظ...';
-    await api('saveProduct', p);
-    await refreshProducts();
-    renderCats(); renderItems(); renderAdminProducts();
-    document.getElementById('product-modal').classList.remove('show');
-  }catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
-});
-
-function renderAdminProducts(){
-  const tbody = document.getElementById('admin-products-body');
-  if(products.length===0){ tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);">مفيش منتجات</td></tr>'; return; }
-  tbody.innerHTML = products.map(p=>{
-    const hasStock = p.stock !== '' && p.stock !== undefined && p.stock !== null;
-    const low = hasStock && Number(p.stock) <= 5;
-    return `
-    <tr>
-      <td>${p.image ? `<img class="prod-thumb" src="${p.image}">` : '—'}</td>
-      <td>${p.name}</td><td>${p.category}</td><td>${fmt(p.price)} ج.م</td><td>${p.barcode||'-'}</td>
-      <td>${hasStock ? `<span class="badge ${low?'low':'cash'}">${p.stock}</span>` : '—'}</td>
-      <td style="display:flex;gap:6px;">
-        <button class="small-btn" data-act="edit" data-id="${p.id}">تعديل</button>
-        <button class="small-btn danger" data-act="del" data-id="${p.id}">حذف</button>
-      </td>
-    </tr>`;
-  }).join('');
-  tbody.querySelectorAll('[data-act="edit"]').forEach(b=>b.addEventListener('click', ()=>{
-    const p = products.find(x=>x.id===b.dataset.id); openProductModal(p);
-  }));
-  tbody.querySelectorAll('[data-act="del"]').forEach(b=>b.addEventListener('click', async ()=>{
-    if(!navigator.onLine){ alert('محتاج اتصال بالنت عشان تحذف صنف'); return; }
-    if(!confirm('متأكد من الحذف؟')) return;
-    try{ await api('deleteProduct', {id:b.dataset.id}); await refreshProducts(); renderCats(); renderItems(); renderAdminProducts(); }
-    catch(e){ alert('حصل خطأ: '+e.message); }
-  }));
-}
-
-/* ================= الإعدادات ================= */
-function loadSettingsForm(){
-  document.getElementById('st-store-name').value = appSettings.storeName || '';
-  document.getElementById('st-country').value = appSettings.country || 'مصر';
-  document.getElementById('st-tax-rate').value = appSettings.taxRate !== undefined ? appSettings.taxRate : 14;
-  document.getElementById('st-vat-number').value = appSettings.vatNumber || '';
-  const preview = document.getElementById('st-logo-preview');
-  if(appSettings.logoUrl){ preview.src = appSettings.logoUrl; preview.style.display='block'; } else { preview.style.display='none'; }
-}
-document.getElementById('st-country').addEventListener('change', (e)=>{
-  document.getElementById('st-tax-rate').value = e.target.value === 'السعودية' ? 15 : 14;
-});
-
-let pendingLogoBase64 = null, pendingLogoMeta = null;
-document.getElementById('st-logo-file').addEventListener('change', async (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  const base64 = await fileToBase64(file);
-  pendingLogoBase64 = base64; pendingLogoMeta = {name:file.name, type:file.type};
-  const preview = document.getElementById('st-logo-preview');
-  preview.src = base64; preview.style.display='block';
-});
-
-document.getElementById('st-save-btn').addEventListener('click', async ()=>{
-  const note = document.getElementById('st-note');
-  if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت عشان تحفظ الإعدادات'; return; }
-  const payload = {
-    storeName: document.getElementById('st-store-name').value.trim() || 'احسبها',
-    country: document.getElementById('st-country').value,
-    taxRate: Number(document.getElementById('st-tax-rate').value) || 14,
-    vatNumber: document.getElementById('st-vat-number').value.trim(),
-    logoUrl: appSettings.logoUrl || ''
-  };
-  try{
-    if(pendingLogoBase64){
-      note.textContent = 'جاري رفع اللوجو...';
-      const up = await uploadImageViaForm(pendingLogoBase64, pendingLogoMeta.name, pendingLogoMeta.type);
-      payload.logoUrl = up.url;
-    }
-    note.textContent = 'جاري الحفظ...';
-    await api('saveSettings', payload);
-    appSettings = payload; ls_set('abdo_settings', appSettings);
-    applyBranding();
-    note.textContent = 'تم الحفظ بنجاح.';
-  }catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
-});
-
-/* ================= الدعم الفني (واتساب مباشر) ================= */
-// حط رقم واتساب شركتك هنا بصيغة دولية من غير + ومن غير أصفار في الأول
-// مثال لمصر: بدل ما تكتب 01012345678 اكتب 201012345678
-const SUPPORT_WHATSAPP_NUMBER = "201000000000";
-document.getElementById('support-fab').addEventListener('click', ()=>{
-  const msg = encodeURIComponent('مرحبًا، محتاج دعم فني في تطبيق ' + appSettings.storeName + '. المستخدم: ' + (currentUser ? currentUser.username : ''));
-  window.open('https://wa.me/' + SUPPORT_WHATSAPP_NUMBER + '?text=' + msg, '_blank');
-});
 
 /* ================= التقارير ================= */
 function getReportRange(period){
@@ -1114,7 +1136,7 @@ function renderReport(){
   const tbody = document.getElementById('rep-body');
   tbody.innerHTML = list.length ? list.map(inv=>`
     <tr><td>${inv.invoiceId}</td><td>${new Date(inv.dateTime).toLocaleString('ar-EG')}</td><td>${inv.cashier}</td><td>${payLabel[inv.paymentMethod]}</td><td>${fmt(inv.total)} ج.م</td></tr>`).join('')
-    : '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:16px;">مفيش فواتير في الفترة دي</td></tr>';
+    : '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:16px;">'+(isEnglish?'No invoices in this period':'مفيش فواتير في الفترة دي')+'</td></tr>';
 }
 document.getElementById('report-period').addEventListener('change', renderReport);
 
@@ -1128,18 +1150,17 @@ document.getElementById('rep-excel-btn').addEventListener('click', ()=>{
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'تقرير-مبيعات-' + Date.now() + '.csv';
+  a.download = (isEnglish?'Sales-Report':'تقرير-مبيعات') + '-' + Date.now() + '.csv';
   a.click();
 });
-
 document.getElementById('rep-pdf-btn').addEventListener('click', ()=>{
   const list = filteredReportSales();
   const total = list.reduce((s,i)=>s+i.total,0);
   const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة'};
   const period = document.getElementById('report-period').value;
-  const periodLabel = {day:'اليوم', week:'آخر 7 أيام', month:'الشهر الحالي'}[period];
+  const periodLabel = {day:(isEnglish?'Today':'اليوم'), week:(isEnglish?'Last 7 days':'آخر 7 أيام'), month:(isEnglish?'Current month':'الشهر الحالي')}[period];
   const w = window.open('', '_blank');
-  w.document.write(`<html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>تقرير مبيعات</title>
+  w.document.write(`<html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${isEnglish?'Sales Report':'تقرير مبيعات'}</title>
   <style>
     body{font-family:Tahoma,Arial,sans-serif;padding:24px;color:#1c1815;}
     h1{margin:0 0 4px;} .muted{color:#777;margin-bottom:18px;}
@@ -1148,35 +1169,402 @@ document.getElementById('rep-pdf-btn').addEventListener('click', ()=>{
     img.logo{max-width:80px;margin-bottom:10px;}
   </style></head><body>
     ${appSettings.logoUrl ? `<img class="logo" src="${appSettings.logoUrl}">` : ''}
-    <h1>${appSettings.storeName} - تقرير المبيعات</h1>
-    <div class="muted">الفترة: ${periodLabel} — تاريخ الطباعة: ${new Date().toLocaleString('ar-EG')}</div>
-    <div class="summary"><div><b>عدد الفواتير:</b> ${list.length}</div><div><b>إجمالي المبيعات:</b> ${fmt(total)}</div></div>
-    <table><thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>الكاشير</th><th>طريقة الدفع</th><th>الإجمالي</th></tr></thead>
+    <h1>${appSettings.storeName} - ${isEnglish?'Sales Report':'تقرير المبيعات'}</h1>
+    <div class="muted">${isEnglish?'Period: ':'الفترة: '}${periodLabel} — ${isEnglish?'Print date: ':'تاريخ الطباعة: '}${new Date().toLocaleString('ar-EG')}</div>
+    <div class="summary"><div><b>${isEnglish?'Number of invoices: ':'عدد الفواتير: '}</b>${list.length}</div><div><b>${isEnglish?'Total sales: ':'إجمالي المبيعات: '}</b>${fmt(total)}</div></div>
+    <table><thead><tr><th>${isEnglish?'Invoice No.':'رقم الفاتورة'}</th><th>${isEnglish?'Date/Time':'التاريخ'}</th><th>${isEnglish?'Cashier':'الكاشير'}</th><th>${isEnglish?'Payment':'طريقة الدفع'}</th><th>${isEnglish?'Total':'الإجمالي'}</th></tr></thead>
     <tbody>${list.map(inv=>`<tr><td>${inv.invoiceId}</td><td>${new Date(inv.dateTime).toLocaleString('ar-EG')}</td><td>${inv.cashier}</td><td>${payLabel[inv.paymentMethod]}</td><td>${fmt(inv.total)}</td></tr>`).join('')}</tbody>
     </table>
     <script>window.onload=function(){setTimeout(function(){window.print();},500);};</` + `script>
   </body></html>`);
   w.document.close();
 });
-
 document.getElementById('rep-email-btn').addEventListener('click', async ()=>{
   const note = document.getElementById('rep-note');
-  const email = prompt('اكتب الإيميل اللي هيتبعتله التقرير:');
+  const email = prompt(isEnglish?'Enter email to send report:':'اكتب الإيميل اللي هيتبعتله التقرير:');
   if(!email) return;
-  if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت عشان تبعت إيميل.'; return; }
+  if(!navigator.onLine){ note.textContent = isEnglish?'Need internet to send email.':'محتاج اتصال بالنت عشان تبعت إيميل.'; return; }
   const period = document.getElementById('report-period').value;
-  note.textContent = 'جاري الإرسال...';
-  try{ await api('emailReport', {to: email, period}); note.textContent = 'تم إرسال التقرير على ' + email; }
-  catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
+  note.textContent = isEnglish?'Sending...':'جاري الإرسال...';
+  try{ await api('emailReport', {to: email, period}); note.textContent = (isEnglish?'Report sent to ':'تم إرسال التقرير على ')+email; }
+  catch(e){ note.textContent = (isEnglish?'Error: ':'حصل خطأ: ')+e.message; }
 });
 
-/* ================= تسجيل service worker ================= */
+/* ================= إدارة الموظفين ================= */
+document.getElementById('add-employee-btn').addEventListener('click', ()=>openEmployeeModal());
+function openEmployeeModal(emp){
+  editingEmployeeId = emp ? emp.username : null;
+  pendingImageBase64 = null; pendingImageMeta = null;
+  document.getElementById('em-title').textContent = emp ? (isEnglish?'Edit Employee':'تعديل موظف') : (isEnglish?'New Employee':'موظف جديد');
+  document.getElementById('em-username').value = emp ? emp.username : '';
+  document.getElementById('em-username').disabled = !!emp;
+  document.getElementById('em-name').value = emp ? emp.name : '';
+  document.getElementById('em-password').value = '';
+  document.getElementById('em-role').value = emp ? emp.role : 'cashier';
+  document.getElementById('em-branch').value = emp ? emp.branch : 'main';
+  document.getElementById('em-note').textContent = '';
+  const preview = document.getElementById('em-image-preview');
+  if(emp && emp.photo){ preview.src = emp.photo; preview.style.display='block'; } else { preview.style.display='none'; }
+  document.getElementById('em-image-file').value = '';
+  document.getElementById('employee-modal').classList.add('show');
+}
+document.getElementById('em-cancel').addEventListener('click', ()=>{ document.getElementById('employee-modal').classList.remove('show'); });
+document.getElementById('em-image-file').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const base64 = await fileToBase64(file);
+  pendingImageBase64 = base64; pendingImageMeta = {name:file.name, type:file.type};
+  const preview = document.getElementById('em-image-preview');
+  preview.src = base64; preview.style.display='block';
+});
+document.getElementById('em-save').addEventListener('click', async ()=>{
+  const note = document.getElementById('em-note');
+  const data = {
+    username: document.getElementById('em-username').value.trim(),
+    name: document.getElementById('em-name').value.trim(),
+    password: document.getElementById('em-password').value.trim(),
+    role: document.getElementById('em-role').value,
+    branch: document.getElementById('em-branch').value,
+    photo: document.getElementById('em-image-preview').style.display==='block' && !pendingImageBase64 ? document.getElementById('em-image-preview').src : ''
+  };
+  if(!data.username || !data.name){ alert(isEnglish?'Enter username and name':'اكتب اسم المستخدم والاسم'); return; }
+  if(!navigator.onLine){ alert(isEnglish?'Need internet to save employee':'محتاج اتصال بالنت عشان تحفظ الموظف'); return; }
+  try{
+    if(pendingImageBase64){
+      note.textContent = isEnglish?'Uploading image...':'جاري رفع الصورة...';
+      const up = await uploadImageViaForm(pendingImageBase64, pendingImageMeta.name, pendingImageMeta.type);
+      data.photo = up.url;
+    }
+    note.textContent = isEnglish?'Saving...':'جاري الحفظ...';
+    await api('saveUser', data);
+    await refreshEmployees();
+    renderEmployees();
+    document.getElementById('employee-modal').classList.remove('show');
+  }catch(e){ note.textContent = (isEnglish?'Error: ':'حصل خطأ: ')+e.message; }
+});
+function renderEmployees(){
+  const tbody = document.getElementById('employees-body');
+  if(employees.length===0){ tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);">'+(isEnglish?'No employees':'مفيش موظفين')+'</td></tr>'; return; }
+  const roleLabel = (r)=> r==='chief'?(isEnglish?'Chief':'رئيس'):r==='admin'?(isEnglish?'Admin':'مدير'):(isEnglish?'Cashier':'كاشير');
+  tbody.innerHTML = employees.map(emp=>{
+    const isOnline = onlineUsers[emp.username] || false;
+    return `
+    <tr>
+      <td>${emp.photo ? `<img class="img-preview-thumb" src="${emp.photo}">` : '—'}</td>
+      <td>${emp.username}</td>
+      <td>${emp.name}</td>
+      <td>${roleLabel(emp.role)}</td>
+      <td>${emp.branch || '—'}</td>
+      <td><span class="badge ${isOnline?'online':'offline'}">${isOnline?(isEnglish?'Online':'أون لاين'):(isEnglish?'Offline':'أوف لاين')}</span></td>
+      <td style="display:flex;gap:6px;">
+        <button class="small-btn" data-act="edit-emp" data-user="${emp.username}">${isEnglish?'Edit':'تعديل'}</button>
+        ${currentUser.role === 'chief' ? `<button class="small-btn danger" data-act="del-emp" data-user="${emp.username}">${isEnglish?'Delete':'حذف'}</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+  tbody.querySelectorAll('[data-act="edit-emp"]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const emp = employees.find(e=>e.username===b.dataset.user);
+      if(emp) openEmployeeModal(emp);
+    });
+  });
+  if(currentUser.role === 'chief'){
+    tbody.querySelectorAll('[data-act="del-emp"]').forEach(b=>{
+      b.addEventListener('click', async ()=>{
+        if(!confirm(isEnglish?'Delete this employee?':'متأكد من حذف الموظف؟')) return;
+        try{
+          await api('deleteUser', {username: b.dataset.user});
+          await refreshEmployees();
+          renderEmployees();
+        }catch(e){ alert((isEnglish?'Error: ':'حصل خطأ: ')+e.message); }
+      });
+    });
+  }
+}
+
+/* ================= لوحة المدير ================= */
+async function renderManagerDashboard(){
+  if(!navigator.onLine){ document.getElementById('m-online').textContent = '?'; document.getElementById('m-offline').textContent = '?'; document.getElementById('m-total').textContent = '?'; return; }
+  try{
+    const stats = await api('getManagerStats', {});
+    const data = stats.data || {};
+    document.getElementById('m-online').textContent = data.onlineCount || 0;
+    document.getElementById('m-offline').textContent = data.offlineCount || 0;
+    document.getElementById('m-total').textContent = data.totalEmployees || 0;
+    document.getElementById('m-branch-on').textContent = data.branchOnline || 0;
+    document.getElementById('m-branch-off').textContent = data.branchOffline || 0;
+    document.getElementById('m-branch-total').textContent = data.totalBranches || 0;
+
+    // رسم بياني للموظفين
+    const empCtx = document.getElementById('chart-employees');
+    if(empChart) empChart.destroy();
+    empChart = new Chart(empCtx, {
+      type:'doughnut',
+      data:{
+        labels:[isEnglish?'Online':'أون لاين', isEnglish?'Offline':'أوف لاين'],
+        datasets:[{data:[data.onlineCount||0, data.offlineCount||0], backgroundColor:['#5c6b3f','#d9534f']}]
+      },
+      options:{ plugins:{legend:{position:'bottom'}} }
+    });
+
+    // رسم بياني للفروع
+    const branchCtx = document.getElementById('chart-branches');
+    if(branchChart) branchChart.destroy();
+    branchChart = new Chart(branchCtx, {
+      type:'doughnut',
+      data:{
+        labels:[isEnglish?'Offline allowed':'مسموح أوف لاين', isEnglish?'Not allowed':'غير مسموح'],
+        datasets:[{data:[data.branchOnline||0, data.branchOffline||0], backgroundColor:['#5c6b3f','#d9534f']}]
+      },
+      options:{ plugins:{legend:{position:'bottom'}} }
+    });
+
+    // قائمة الموظفين
+    const list = document.getElementById('m-employees-list');
+    const users = data.users || [];
+    list.innerHTML = users.map(u=>`
+      <tr>
+        <td>${u.name}</td>
+        <td>${u.branch || '—'}</td>
+        <td><span class="badge ${u.status==='online'?'online':'offline'}">${u.status==='online'?(isEnglish?'Online':'أون لاين'):(isEnglish?'Offline':'أوف لاين')}</span></td>
+        <td>${u.lastActive ? new Date(u.lastActive).toLocaleString('ar-EG') : '—'}</td>
+        <td><button class="small-btn" data-act="notify" data-user="${u.username}">${isEnglish?'Notify':'تنبيه'}</button></td>
+      </tr>
+    `).join('');
+    list.querySelectorAll('[data-act="notify"]').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        document.getElementById('m-notif-user').value = b.dataset.user;
+        document.getElementById('m-notif-msg').focus();
+      });
+    });
+
+    // تحديث قوائم التنبيهات والملاحظات
+    populateNotifSelects(data.users || []);
+  }catch(e){ console.error(e); }
+}
+function populateNotifSelects(users){
+  const sel1 = document.getElementById('m-notif-user');
+  const sel2 = document.getElementById('m-note-user');
+  const options = users.map(u=>`<option value="${u.username}">${u.name}</option>`).join('');
+  sel1.innerHTML = options;
+  sel2.innerHTML = options;
+}
+document.getElementById('m-send-notif').addEventListener('click', async ()=>{
+  const to = document.getElementById('m-notif-user').value;
+  const msg = document.getElementById('m-notif-msg').value.trim();
+  const res = document.getElementById('m-notif-result');
+  if(!to || !msg){ res.textContent = isEnglish?'Select user and enter message':'اختر الموظف واكتب الرسالة'; return; }
+  if(!navigator.onLine){ res.textContent = isEnglish?'Need internet':'محتاج نت'; return; }
+  try{
+    await api('sendNotification', {to, message:msg, from: currentUser.username});
+    res.textContent = isEnglish?'Notification sent':'تم إرسال التنبيه';
+    document.getElementById('m-notif-msg').value = '';
+  }catch(e){ res.textContent = (isEnglish?'Error: ':'حصل خطأ: ')+e.message; }
+});
+document.getElementById('m-add-note').addEventListener('click', async ()=>{
+  const to = document.getElementById('m-note-user').value;
+  const note = document.getElementById('m-note-text').value.trim();
+  const res = document.getElementById('m-note-result');
+  if(!to || !note){ res.textContent = isEnglish?'Select user and enter note':'اختر الموظف واكتب الملاحظة'; return; }
+  if(!navigator.onLine){ res.textContent = isEnglish?'Need internet':'محتاج نت'; return; }
+  try{
+    await api('addNote', {to, note, from: currentUser.username});
+    res.textContent = isEnglish?'Note saved':'تم حفظ الملاحظة';
+    document.getElementById('m-note-text').value = '';
+  }catch(e){ res.textContent = (isEnglish?'Error: ':'حصل خطأ: ')+e.message; }
+});
+
+/* ================= إدارة المنتجات ================= */
+document.getElementById('add-product-btn').addEventListener('click', ()=>openProductModal());
+function openProductModal(product){
+  editingProductId = product ? product.id : null;
+  pendingImageBase64 = null; pendingImageMeta = null;
+  document.getElementById('pm-title').textContent = product ? (isEnglish?'Edit Product':'تعديل صنف') : (isEnglish?'New Product':'صنف جديد');
+  document.getElementById('pm-name').value = product ? product.name : '';
+  document.getElementById('pm-cat').value = product ? product.category : '';
+  document.getElementById('pm-price').value = product ? product.price : '';
+  document.getElementById('pm-stock').value = product && product.stock !== '' && product.stock !== undefined ? product.stock : '';
+  document.getElementById('pm-barcode').value = product ? product.barcode : '';
+  document.getElementById('pm-branch').value = product ? product.branch : 'main';
+  document.getElementById('pm-note').textContent = '';
+  const preview = document.getElementById('pm-image-preview');
+  if(product && product.image){ preview.src = product.image; preview.style.display='block'; } else { preview.style.display='none'; }
+  document.getElementById('pm-image-file').value = '';
+  document.getElementById('product-modal').classList.add('show');
+}
+document.getElementById('pm-cancel').addEventListener('click', ()=>{ document.getElementById('product-modal').classList.remove('show'); });
+document.getElementById('pm-scan-btn').addEventListener('click', ()=>{ openCameraScanner((code)=>{ document.getElementById('pm-barcode').value = code; }); });
+document.getElementById('pm-image-file').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const base64 = await fileToBase64(file);
+  pendingImageBase64 = base64; pendingImageMeta = {name:file.name, type:file.type};
+  const preview = document.getElementById('pm-image-preview');
+  preview.src = base64; preview.style.display='block';
+});
+document.getElementById('pm-save').addEventListener('click', async ()=>{
+  const note = document.getElementById('pm-note');
+  const p = {
+    id: editingProductId,
+    name: document.getElementById('pm-name').value.trim(),
+    category: document.getElementById('pm-cat').value.trim(),
+    price: Number(document.getElementById('pm-price').value)||0,
+    stock: document.getElementById('pm-stock').value === '' ? '' : Number(document.getElementById('pm-stock').value),
+    barcode: document.getElementById('pm-barcode').value.trim(),
+    branch: document.getElementById('pm-branch').value,
+    active: true,
+    image: document.getElementById('pm-image-preview').style.display==='block' && !pendingImageBase64 ? document.getElementById('pm-image-preview').src : ''
+  };
+  if(!p.name || !p.category){ alert(isEnglish?'Enter name and category':'اكتب اسم الصنف والفئة'); return; }
+  if(!navigator.onLine){ alert(isEnglish?'Need internet to save product':'محتاج اتصال بالنت عشان تضيف أو تعدل صنف'); return; }
+  try{
+    if(pendingImageBase64){
+      note.textContent = isEnglish?'Uploading image...':'جاري رفع الصورة...';
+      const up = await uploadImageViaForm(pendingImageBase64, pendingImageMeta.name, pendingImageMeta.type);
+      p.image = up.url;
+    }
+    note.textContent = isEnglish?'Saving...':'جاري الحفظ...';
+    await api('saveProduct', p);
+    await refreshProducts();
+    renderCats(); renderItems(); renderAdminProducts();
+    document.getElementById('product-modal').classList.remove('show');
+  }catch(e){ note.textContent = (isEnglish?'Error: ':'حصل خطأ: ')+e.message; }
+});
+function renderAdminProducts(){
+  const filter = document.getElementById('admin-branch-filter').value;
+  let list = products;
+  if(filter !== 'all') list = list.filter(p=>p.branch === filter);
+  const tbody = document.getElementById('admin-products-body');
+  if(list.length===0){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);">'+(isEnglish?'No products':'مفيش منتجات')+'</td></tr>'; return; }
+  tbody.innerHTML = list.map(p=>{
+    const hasStock = p.stock !== '' && p.stock !== undefined && p.stock !== null;
+    const low = hasStock && Number(p.stock) <= 5;
+    return `
+    <tr>
+      <td>${p.image ? `<img class="prod-thumb" src="${p.image}">` : '—'}</td>
+      <td>${p.name}</td><td>${p.category}</td><td>${fmt(p.price)} ج.م</td><td>${p.barcode||'-'}</td>
+      <td>${hasStock ? `<span class="badge ${low?'low':'cash'}">${p.stock}</span>` : '—'}</td>
+      <td>${p.branch || 'main'}</td>
+      <td style="display:flex;gap:6px;">
+        <button class="small-btn" data-act="edit" data-id="${p.id}">${isEnglish?'Edit':'تعديل'}</button>
+        <button class="small-btn danger" data-act="del" data-id="${p.id}">${isEnglish?'Delete':'حذف'}</button>
+      </td>
+    </tr>`;
+  }).join('');
+  tbody.querySelectorAll('[data-act="edit"]').forEach(b=>b.addEventListener('click', ()=>{
+    const p = products.find(x=>x.id===b.dataset.id); openProductModal(p);
+  }));
+  tbody.querySelectorAll('[data-act="del"]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!navigator.onLine){ alert(isEnglish?'Need internet to delete':'محتاج اتصال بالنت عشان تحذف صنف'); return; }
+    if(!confirm(isEnglish?'Confirm delete?':'متأكد من الحذف؟')) return;
+    try{ await api('deleteProduct', {id:b.dataset.id}); await refreshProducts(); renderCats(); renderItems(); renderAdminProducts(); }
+    catch(e){ alert((isEnglish?'Error: ':'حصل خطأ: ')+e.message); }
+  }));
+}
+document.getElementById('admin-branch-filter').addEventListener('change', renderAdminProducts);
+
+/* ================= البيانات (للرئيس) ================= */
+function renderData(){
+  const tbody = document.getElementById('data-body');
+  if(sessionSales.length===0){ tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);">'+(isEnglish?'No data':'مفيش بيانات')+'</td></tr>'; return; }
+  const statusText = (s)=> s.synced ? (isEnglish?'Synced':'متزامن') : (isEnglish?'Pending':'معلق');
+  tbody.innerHTML = sessionSales.map(inv=>`
+    <tr>
+      <td>${inv.invoiceId}</td>
+      <td>${new Date(inv.dateTime).toLocaleString('ar-EG')}</td>
+      <td>${inv.cashier}</td>
+      <td>${fmt(inv.total)} ج.م</td>
+      <td>${inv.branch || 'main'}</td>
+      <td><span class="badge ${inv.synced?'cash':'pending'}">${statusText(inv)}</span></td>
+      <td>
+        ${currentUser.role === 'chief' ? `<button class="small-btn danger" data-act="del-inv" data-id="${inv.invoiceId}">${isEnglish?'Delete':'حذف'}</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+  if(currentUser.role === 'chief'){
+    tbody.querySelectorAll('[data-act="del-inv"]').forEach(b=>{
+      b.addEventListener('click', async ()=>{
+        if(!confirm(isEnglish?'Delete this invoice? This action cannot be undone!':'حذف هذه الفاتورة؟ هذا الإجراء لا يمكن التراجع عنه!')) return;
+        try{
+          await api('deleteInvoice', {invoiceId: b.dataset.id});
+          // حذف محلياً
+          sessionSales = sessionSales.filter(s=>s.invoiceId !== b.dataset.id);
+          ls_set('abdo_sales_log', sessionSales);
+          renderData(); renderSales(); renderDashboard();
+          showToast(isEnglish?'Invoice deleted':'تم حذف الفاتورة');
+        }catch(e){ alert((isEnglish?'Error: ':'حصل خطأ: ')+e.message); }
+      });
+    });
+  }
+}
+document.getElementById('data-refresh-btn').addEventListener('click', ()=>{
+  renderData();
+  showToast(isEnglish?'Data refreshed':'تم تحديث البيانات');
+});
+
+/* ================= الإعدادات ================= */
+function loadSettingsForm(){
+  document.getElementById('st-store-name').value = appSettings.storeName || '';
+  document.getElementById('st-country').value = appSettings.country || 'مصر';
+  document.getElementById('st-tax-rate').value = appSettings.taxRate !== undefined ? appSettings.taxRate : 14;
+  document.getElementById('st-vat-number').value = appSettings.vatNumber || '';
+  document.getElementById('st-theme').value = appSettings.theme || 'theme-1';
+  document.getElementById('st-lang').value = appSettings.lang || 'ar';
+  const preview = document.getElementById('st-logo-preview');
+  if(appSettings.logoUrl){ preview.src = appSettings.logoUrl; preview.style.display='block'; } else { preview.style.display='none'; }
+}
+document.getElementById('st-country').addEventListener('change', (e)=>{
+  document.getElementById('st-tax-rate').value = e.target.value === 'السعودية' ? 15 : 14;
+});
+let pendingLogoBase64 = null, pendingLogoMeta = null;
+document.getElementById('st-logo-file').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const base64 = await fileToBase64(file);
+  pendingLogoBase64 = base64; pendingLogoMeta = {name:file.name, type:file.type};
+  const preview = document.getElementById('st-logo-preview');
+  preview.src = base64; preview.style.display='block';
+});
+document.getElementById('st-save-btn').addEventListener('click', async ()=>{
+  const note = document.getElementById('st-note');
+  if(!navigator.onLine){ note.textContent = isEnglish?'Need internet to save settings':'محتاج اتصال بالنت عشان تحفظ الإعدادات'; return; }
+  const payload = {
+    storeName: document.getElementById('st-store-name').value.trim() || APP_NAME,
+    country: document.getElementById('st-country').value,
+    taxRate: Number(document.getElementById('st-tax-rate').value) || 14,
+    vatNumber: document.getElementById('st-vat-number').value.trim(),
+    logoUrl: appSettings.logoUrl || '',
+    theme: document.getElementById('st-theme').value,
+    lang: document.getElementById('st-lang').value
+  };
+  try{
+    if(pendingLogoBase64){
+      note.textContent = isEnglish?'Uploading logo...':'جاري رفع اللوجو...';
+      const up = await uploadImageViaForm(pendingLogoBase64, pendingLogoMeta.name, pendingLogoMeta.type);
+      payload.logoUrl = up.url;
+    }
+    note.textContent = isEnglish?'Saving...':'جاري الحفظ...';
+    await api('saveSettings', payload);
+    appSettings = payload; ls_set('abdo_settings', appSettings);
+    applyBranding();
+    note.textContent = isEnglish?'Saved successfully.':'تم الحفظ بنجاح.';
+  }catch(e){ note.textContent = (isEnglish?'Error: ':'حصل خطأ: ')+e.message; }
+});
+
+/* ================= الدعم الفني ================= */
+const SUPPORT_WHATSAPP_NUMBER = "201000000000";
+document.getElementById('support-fab').addEventListener('click', ()=>{
+  const msg = encodeURIComponent((isEnglish?'Hello, I need technical support for ':'مرحبًا، محتاج دعم فني في تطبيق ')+appSettings.storeName+'. '+(isEnglish?'User: ':'المستخدم: ')+(currentUser?currentUser.username:''));
+  window.open('https://wa.me/' + SUPPORT_WHATSAPP_NUMBER + '?text=' + msg, '_blank');
+});
+
+/* ================= Service Worker ================= */
 if('serviceWorker' in navigator){ window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 
 /* ================= بدء التشغيل ================= */
 if(currentUser){
   enterApp();
-  if(navigator.onLine){ refreshProducts().then(()=>{renderCats();renderItems();}); refreshSettings(); }
+  if(navigator.onLine){ refreshProducts().then(()=>{renderCats();renderItems();}); refreshSettings(); refreshEmployees(); refreshBranches(); }
 }
 </script>
 </body>
