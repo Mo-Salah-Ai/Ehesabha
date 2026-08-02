@@ -19,6 +19,14 @@
     --olive:#5c6b3f; --olive-dark:#3f4a2b; --brick:#b1502f; --brick-dark:#8a3c22;
     --gold:#c8992b; --muted:#7a7264; --danger:#a83a3a; --shadow:0 2px 0 rgba(28,24,21,0.06); --radius:14px;
   }
+  [data-theme="dark"]{
+    --ink:#f0ece3; --paper:#1c1a16; --card:#26241f; --line:#3a362d;
+    --olive:#7f9457; --olive-dark:#252821; --brick:#d9754a; --brick-dark:#b1502f;
+    --gold:#e0b25a; --muted:#a89d88; --danger:#e26b6b; --shadow:0 2px 0 rgba(0,0,0,0.25);
+  }
+  [data-theme="dark"] body{ background-image:radial-gradient(circle at 1px 1px, rgba(255,255,255,0.04) 1px, transparent 0); }
+  [data-theme="dark"] .field input,[data-theme="dark"] .field select,[data-theme="dark"] .field textarea,
+  [data-theme="dark"] .search-row input,[data-theme="dark"] .modal .field input,[data-theme="dark"] .modal .field select{ background:var(--card); color:var(--ink); }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{font-family:'Tajawal',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;
@@ -186,6 +194,7 @@
       <span class="status-dot" id="status-dot"></span>
       <span class="status-txt" id="status-txt">متصل</span>
       <button class="sync-btn" id="manual-sync-btn" title="مزامنة الفواتير المعلقة">🔄 مزامنة <span class="count" id="pending-count" style="display:none;">0</span></button>
+      <button class="sync-btn" id="theme-toggle-btn" title="الوضع الليلي/النهاري">🌙</button>
       <div class="who">
         <span class="avatar" id="who-avatar">؟</span>
         <span id="who-name"></span>
@@ -198,6 +207,7 @@
     <button class="tab-btn active" data-tab="pos">الكاشير</button>
     <button class="tab-btn" data-tab="dash">لوحة التحكم</button>
     <button class="tab-btn" data-tab="sales">المبيعات</button>
+    <button class="tab-btn" data-tab="returns">المرتجعات</button>
     <button class="tab-btn" data-tab="reports">التقارير</button>
     <button class="tab-btn mgr-only" data-tab="admin" style="display:none;">المنتجات</button>
     <button class="tab-btn mgr-only" data-tab="employees" style="display:none;">الموظفين</button>
@@ -222,9 +232,11 @@
           <div id="cart-body"><div class="cart-empty">السلة فاضية.. اختار أصناف من القايمة</div></div>
           <div class="totals" id="totals" style="display:none;">
             <div class="row"><span>الإجمالي الفرعي</span><span id="t-sub">0.00</span></div>
+            <div class="row" id="t-discount-row" style="display:none;color:var(--danger);"><span>الخصم <button id="t-discount-remove" style="border:none;background:none;color:var(--danger);cursor:pointer;">✕</button></span><span id="t-discount">0.00</span></div>
             <div class="row"><span id="t-tax-label">الضريبة</span><span id="t-tax">0.00</span></div>
             <div class="row grand"><span>الإجمالي</span><span id="t-grand">0.00 ج.م</span></div>
           </div>
+          <button class="btn-ghost" id="discount-btn" style="display:none;">🏷 إضافة خصم</button>
           <div class="pay-methods" id="pay-methods" style="display:none;">
             <button class="active" data-pay="cash">💵 كاش</button>
             <button data-pay="card">💳 فيزا</button>
@@ -265,8 +277,35 @@
     <section class="screen" id="screen-sales">
       <div class="panel">
         <h3>سجل الفواتير <button class="btn-primary mgr-only" style="width:auto;padding:8px 16px;font-size:13px;display:none;" id="load-full-history-btn">📅 تحميل كل المبيعات (كل الأيام)</button></h3>
+        <div class="field" style="max-width:220px;"><label>عرض</label>
+          <select id="sales-filter">
+            <option value="all">كل الفواتير</option>
+            <option value="hour">آخر ساعة</option>
+            <option value="today" selected>اليوم بس</option>
+            <option value="24h">آخر 24 ساعة</option>
+          </select>
+        </div>
         <div class="table-wrap"><table><thead><tr><th>رقم الفاتورة</th><th>الوقت</th><th>الكاشير</th><th>الدفع</th><th>الإجمالي</th><th>الحالة</th><th></th></tr></thead>
         <tbody id="sales-body"><tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px;">مفيش فواتير لسه</td></tr></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- RETURNS -->
+    <section class="screen" id="screen-returns">
+      <div class="panel">
+        <h3>مرتجع فاتورة</h3>
+        <div class="field" style="max-width:280px;"><label>رقم الفاتورة</label>
+          <div class="barcode-row"><input id="ret-invoice-id" placeholder="مثلاً INV1785..."><button class="icon-btn" id="ret-search-btn">بحث</button></div>
+        </div>
+        <div class="login-err" id="ret-note" style="color:var(--olive-dark);"></div>
+        <div id="ret-result" style="display:none;margin-top:16px;">
+          <div class="table-wrap"><table>
+            <thead><tr><th>الصنف</th><th>الكمية الأصلية</th><th>كمية الإرجاع</th><th>السعر</th></tr></thead>
+            <tbody id="ret-items-body"></tbody>
+          </table></div>
+          <div style="margin-top:14px;font-weight:800;font-family:'Cairo';" id="ret-total-preview"></div>
+          <button class="btn-primary" style="width:auto;padding:10px 22px;margin-top:12px;" id="ret-confirm-btn">↩ تنفيذ المرتجع</button>
+        </div>
       </div>
     </section>
 
@@ -411,6 +450,7 @@
     <div class="field"><label>اسم المستخدم</label><input id="em-username"></div>
     <div class="field"><label>كلمة المرور (سيبها فاضية لو مش عايز تغيرها في التعديل)</label><input id="em-password" type="password"></div>
     <div class="field"><label>الاسم</label><input id="em-name"></div>
+    <div class="field"><label>رقم البطاقة (اختياري)</label><input id="em-card"></div>
     <div class="field"><label>الصلاحية</label><select id="em-role"></select></div>
     <div class="field"><label>الفرع</label><select id="em-branch"></select></div>
     <div class="field">
@@ -444,6 +484,18 @@ function csvEscape(v){ return '"' + String(v==null?'':v).replace(/"/g,'""') + '"
 const ROLE_LABEL = {cashier:'كاشير', manager:'مدير', chief:'رئيس'};
 function isManagerOrAbove(){ return currentUser && (currentUser.role==='manager' || currentUser.role==='chief'); }
 function isChief(){ return currentUser && currentUser.role==='chief'; }
+
+/* ================= الوضع الليلي/النهاري ================= */
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('theme-toggle-btn').textContent = theme === 'dark' ? '☀️' : '🌙';
+  ls_set('abdo_theme', theme);
+}
+document.getElementById('theme-toggle-btn').addEventListener('click', ()=>{
+  const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+});
+applyTheme(ls_get('abdo_theme', 'light'));
 
 /* ================= JSONP ================= */
 let jsonpCounter = 0;
@@ -534,6 +586,7 @@ let products = ls_get('abdo_products', []);
 let appSettings = ls_get('abdo_settings', {storeName:'احسبها', country:'مصر', taxRate:14, vatNumber:''});
 let branches = ls_get('abdo_branches', [{name:'الفرع الرئيسي', allowOffline:true}]);
 let cart = {};
+let cartDiscount = null; // {type:'percent'|'fixed', value:number, amount:number}
 let activePay = 'cash';
 let activeCat = null;
 let sessionSales = ls_get('abdo_sales_log', []);
@@ -628,6 +681,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     document.getElementById('screen-'+btn.dataset.tab).classList.add('active');
     if(btn.dataset.tab==='dash') renderDashboard();
     if(btn.dataset.tab==='sales') renderSales();
+    if(btn.dataset.tab==='returns'){ document.getElementById('ret-result').style.display='none'; document.getElementById('ret-invoice-id').value=''; document.getElementById('ret-note').textContent=''; }
     if(btn.dataset.tab==='reports') renderReport();
     if(btn.dataset.tab==='admin') renderAdminProducts();
     if(btn.dataset.tab==='employees') renderEmployeesTab();
@@ -702,6 +756,20 @@ function changeQty(id, delta){
   if(cart[id].qty<=0) delete cart[id];
   renderCart();
 }
+function computeCartTotals(){
+  const entries = Object.values(cart);
+  const sub = entries.reduce((s,it)=>s+it.price*it.qty,0);
+  let discountAmount = 0;
+  if(cartDiscount){
+    discountAmount = cartDiscount.type === 'percent' ? sub * (cartDiscount.value/100) : cartDiscount.value;
+    discountAmount = Math.max(0, Math.min(discountAmount, sub));
+  }
+  const taxable = sub - discountAmount;
+  const tax = taxable * (TAX_RATE_PCT/100);
+  const grand = taxable + tax;
+  return { sub, discountAmount, taxable, tax, grand };
+}
+
 function renderCart(){
   const entries = Object.values(cart);
   const body = document.getElementById('cart-body');
@@ -710,7 +778,8 @@ function renderCart(){
   const checkoutBtn = document.getElementById('checkout-btn');
   const clearBtn = document.getElementById('clear-btn');
   const holdBtn = document.getElementById('hold-btn');
-  if(entries.length===0){ body.innerHTML = '<div class="cart-empty">السلة فاضية.. اختار أصناف من القايمة</div>'; totalsEl.style.display='none'; payEl.style.display='none'; checkoutBtn.disabled=true; clearBtn.style.display='none'; holdBtn.style.display='none'; toggleCashCalc(); renderHeldList(); return; }
+  const discountBtn = document.getElementById('discount-btn');
+  if(entries.length===0){ body.innerHTML = '<div class="cart-empty">السلة فاضية.. اختار أصناف من القايمة</div>'; totalsEl.style.display='none'; payEl.style.display='none'; checkoutBtn.disabled=true; clearBtn.style.display='none'; holdBtn.style.display='none'; discountBtn.style.display='none'; cartDiscount=null; toggleCashCalc(); renderHeldList(); return; }
   body.innerHTML = `<div class="cart-list">${entries.map(it=>`
     <div class="cart-row"><div class="info"><div class="n">${it.name}</div><div class="p">${fmt(it.price)} ج.م × ${it.qty}</div></div>
       <div class="qty-ctrl"><button data-act="minus" data-id="${it.id}">−</button><span>${it.qty}</span><button data-act="plus" data-id="${it.id}">+</button></div>
@@ -718,16 +787,27 @@ function renderCart(){
   body.querySelectorAll('[data-act="plus"]').forEach(b=>b.addEventListener('click',()=>changeQty(b.dataset.id,1)));
   body.querySelectorAll('[data-act="minus"]').forEach(b=>b.addEventListener('click',()=>changeQty(b.dataset.id,-1)));
   body.querySelectorAll('[data-act="rm"]').forEach(b=>b.addEventListener('click',()=>{delete cart[b.dataset.id]; renderCart();}));
-  const sub = entries.reduce((s,it)=>s+it.price*it.qty,0);
-  const tax = sub*(TAX_RATE_PCT/100), grand = sub+tax;
-  document.getElementById('t-sub').textContent = fmt(sub);
-  document.getElementById('t-tax').textContent = fmt(tax);
-  document.getElementById('t-grand').textContent = fmt(grand)+' ج.م';
+  const t = computeCartTotals();
+  document.getElementById('t-sub').textContent = fmt(t.sub);
+  document.getElementById('t-tax').textContent = fmt(t.tax);
+  document.getElementById('t-grand').textContent = fmt(t.grand)+' ج.م';
+  const discRow = document.getElementById('t-discount-row');
+  if(cartDiscount && t.discountAmount > 0){ discRow.style.display='flex'; document.getElementById('t-discount').textContent = '-'+fmt(t.discountAmount); }
+  else{ discRow.style.display='none'; }
   totalsEl.style.display='block'; payEl.style.display='flex'; checkoutBtn.disabled=false; clearBtn.style.display='block';
-  holdBtn.style.display='block';
+  holdBtn.style.display='block'; discountBtn.style.display='block';
   toggleCashCalc();
   renderHeldList();
 }
+document.getElementById('discount-btn').addEventListener('click', ()=>{
+  const type = confirm('اضغط "OK" لخصم بالنسبة المئوية %، أو "إلغاء" لخصم بمبلغ ثابت ج.م') ? 'percent' : 'fixed';
+  const valueStr = prompt(type==='percent' ? 'اكتب نسبة الخصم % (مثلاً 10)' : 'اكتب قيمة الخصم بالجنيه (مثلاً 20)');
+  const value = Number(valueStr);
+  if(!valueStr || isNaN(value) || value <= 0){ return; }
+  cartDiscount = { type, value };
+  renderCart();
+});
+document.getElementById('t-discount-remove').addEventListener('click', ()=>{ cartDiscount = null; renderCart(); });
 document.getElementById('clear-btn').addEventListener('click', ()=>{ cart={}; renderCart(); });
 document.querySelectorAll('#pay-methods button').forEach(b=>{ b.addEventListener('click', ()=>{ document.querySelectorAll('#pay-methods button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); activePay = b.dataset.pay; toggleCashCalc(); }); });
 
@@ -738,9 +818,7 @@ function toggleCashCalc(){
   else{ row.style.display = 'none'; }
 }
 function updateChange(){
-  const entries = Object.values(cart);
-  const sub = entries.reduce((s,it)=>s+it.price*it.qty,0);
-  const grand = sub + sub*(TAX_RATE_PCT/100);
+  const grand = computeCartTotals().grand;
   const given = Number(document.getElementById('cash-given').value) || 0;
   const changeEl = document.getElementById('cash-change');
   if(given <= 0){ changeEl.textContent = ''; changeEl.style.color = ''; return; }
@@ -799,19 +877,18 @@ function renderHeldList(){
 document.getElementById('checkout-btn').addEventListener('click', async ()=>{
   const entries = Object.values(cart);
   if(entries.length===0) return;
-  const sub = entries.reduce((s,it)=>s+it.price*it.qty,0);
-  const tax = sub*(TAX_RATE_PCT/100), grand = sub+tax;
+  const t = computeCartTotals();
   const invoice = { invoiceId: uid(), dateTime: new Date().toISOString(), cashier: currentUser.username,
-    items: entries.map(e=>({id:e.id, n:e.name, qty:e.qty, p:e.price})), subtotal: sub, tax, total: grand, paymentMethod: activePay, synced: false };
+    items: entries.map(e=>({id:e.id, n:e.name, qty:e.qty, p:e.price})), subtotal: t.sub, tax: t.tax, total: t.grand, discount: t.discountAmount, paymentMethod: activePay, synced: false };
   sessionSales.unshift(invoice); ls_set('abdo_sales_log', sessionSales); queueSale(invoice); lastInvoice = invoice;
   entries.forEach(e=>{ const p = products.find(x=>x.id===e.id); if(p && p.stock !== '' && p.stock !== undefined && p.stock !== null){ p.stock = Math.max(0, Number(p.stock) - e.qty); } });
   ls_set('abdo_products', products);
   const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة'}[activePay];
   document.getElementById('r-num').textContent = 'فاتورة رقم '+invoice.invoiceId;
-  document.getElementById('r-amt').textContent = fmt(grand)+' ج.م';
+  document.getElementById('r-amt').textContent = fmt(t.grand)+' ج.م';
   document.getElementById('r-pay').textContent = 'الدفع: '+payLabel;
   document.getElementById('receipt-modal').classList.add('show');
-  cart = {}; renderCart(); renderItems();
+  cart = {}; cartDiscount = null; renderCart(); renderItems();
   document.getElementById('cash-given').value = '';
   syncPending();
 });
@@ -940,18 +1017,29 @@ function renderDashboard(){
 }
 
 /* ================= سجل المبيعات ================= */
+function getSalesFilterRange(filter){
+  const now = new Date();
+  if(filter === 'hour') return new Date(now.getTime() - 60*60*1000);
+  if(filter === '24h') return new Date(now.getTime() - 24*60*60*1000);
+  if(filter === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return null; // all
+}
 function renderSales(){
   const tbody = document.getElementById('sales-body');
-  if(sessionSales.length===0){ tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px;">مفيش فواتير لسه</td></tr>'; return; }
-  const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة'};
-  tbody.innerHTML = sessionSales.map((inv,idx)=>`
-    <tr><td>${inv.invoiceId}</td><td>${new Date(inv.dateTime).toLocaleTimeString('ar-EG',{hour:'2-digit',minute:'2-digit'})}</td><td>${inv.cashier}</td>
-      <td><span class="badge ${inv.paymentMethod==='cash'?'cash':'card'}">${payLabel[inv.paymentMethod]}</span></td><td>${fmt(inv.total)} ج.م</td>
+  const filter = document.getElementById('sales-filter').value;
+  const from = getSalesFilterRange(filter);
+  const list = from ? sessionSales.filter(inv => new Date(inv.dateTime) >= from) : sessionSales;
+  if(list.length===0){ tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px;">مفيش فواتير في الفترة دي</td></tr>'; return; }
+  const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة', 'مرتجع':'مرتجع'};
+  tbody.innerHTML = list.map((inv)=>`
+    <tr><td>${inv.invoiceId}</td><td>${new Date(inv.dateTime).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})}</td><td>${inv.cashier}</td>
+      <td><span class="badge ${inv.paymentMethod==='cash'?'cash':inv.paymentMethod==='مرتجع'?'low':'card'}">${payLabel[inv.paymentMethod]||inv.paymentMethod}</span></td><td>${fmt(inv.total)} ج.م</td>
       <td>${inv.synced ? '<span class="badge cash">متزامن</span>' : '<span class="badge pending">في انتظار المزامنة</span>'}</td>
-      <td style="display:flex;gap:6px;"><button class="small-btn" data-idx="${idx}" data-act="print-sale">🖨</button>${isChief()?`<button class="small-btn danger" data-idx="${idx}" data-act="del-sale">🗑</button>`:''}</td></tr>`).join('');
-  tbody.querySelectorAll('[data-act="print-sale"]').forEach(b=>{ b.addEventListener('click', ()=>{ printReceipt(sessionSales[Number(b.dataset.idx)]); }); });
+      <td style="display:flex;gap:6px;"><button class="small-btn" data-id="${inv.invoiceId}" data-act="print-sale">🖨</button>${isChief()?`<button class="small-btn danger" data-id="${inv.invoiceId}" data-act="del-sale">🗑</button>`:''}</td></tr>`).join('');
+  tbody.querySelectorAll('[data-act="print-sale"]').forEach(b=>{ b.addEventListener('click', ()=>{ const inv = sessionSales.find(s=>s.invoiceId===b.dataset.id); if(inv) printReceipt(inv); }); });
   tbody.querySelectorAll('[data-act="del-sale"]').forEach(b=>{ b.addEventListener('click', async ()=>{
-    const inv = sessionSales[Number(b.dataset.idx)];
+    const inv = sessionSales.find(s=>s.invoiceId===b.dataset.id);
+    if(!inv) return;
     if(!confirm('متأكد من حذف الفاتورة ' + inv.invoiceId + '؟ الإجراء ده مينفعش يتراجع فيه')) return;
     if(!navigator.onLine){ showToast('⚠️ محتاج نت عشان تحذف فاتورة'); return; }
     try{ await api('deleteSale', {invoiceId: inv.invoiceId, actingUsername: currentUser.username});
@@ -960,6 +1048,63 @@ function renderSales(){
     }catch(e){ showToast('⚠️ ' + e.message); }
   }); });
 }
+document.getElementById('sales-filter').addEventListener('change', renderSales);
+
+/* ================= المرتجعات ================= */
+let returnSaleData = null;
+document.getElementById('ret-search-btn').addEventListener('click', async ()=>{
+  const note = document.getElementById('ret-note');
+  const invoiceId = document.getElementById('ret-invoice-id').value.trim();
+  document.getElementById('ret-result').style.display='none';
+  if(!invoiceId){ note.textContent = 'اكتب رقم الفاتورة'; return; }
+  if(!navigator.onLine){ note.textContent = 'المرتجعات محتاجة اتصال بالنت عشان تدوّر في الشيت'; return; }
+  note.textContent = 'جاري البحث...';
+  try{
+    const r = await api('getSaleByInvoice', {invoiceId});
+    returnSaleData = r.sale;
+    note.textContent = '';
+    const tbody = document.getElementById('ret-items-body');
+    tbody.innerHTML = returnSaleData.items.map((it,idx)=>`
+      <tr><td>${it.n}</td><td>${it.qty}</td><td><input type="number" min="0" max="${it.qty}" value="0" data-idx="${idx}" class="ret-qty-input" style="width:70px;padding:6px;border-radius:8px;border:1.5px solid var(--line);"></td><td>${fmt(it.p)} ج.م</td></tr>`).join('');
+    document.getElementById('ret-result').style.display='block';
+    document.querySelectorAll('.ret-qty-input').forEach(inp=>inp.addEventListener('input', updateReturnPreview));
+    updateReturnPreview();
+  }catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
+});
+
+function updateReturnPreview(){
+  if(!returnSaleData) return;
+  let total = 0;
+  document.querySelectorAll('.ret-qty-input').forEach(inp=>{
+    const idx = Number(inp.dataset.idx);
+    const qty = Math.min(Number(inp.value)||0, returnSaleData.items[idx].qty);
+    total += qty * returnSaleData.items[idx].p;
+  });
+  const tax = total * (TAX_RATE_PCT/100);
+  document.getElementById('ret-total-preview').textContent = 'إجمالي المرتجع المتوقع: ' + fmt(total + tax) + ' ج.م (شامل الضريبة)';
+}
+
+document.getElementById('ret-confirm-btn').addEventListener('click', async ()=>{
+  const note = document.getElementById('ret-note');
+  if(!returnSaleData) return;
+  const items = [];
+  document.querySelectorAll('.ret-qty-input').forEach(inp=>{
+    const idx = Number(inp.dataset.idx);
+    const qty = Math.min(Number(inp.value)||0, returnSaleData.items[idx].qty);
+    if(qty > 0) items.push({ id: returnSaleData.items[idx].id, n: returnSaleData.items[idx].n, qty, p: returnSaleData.items[idx].p });
+  });
+  if(items.length===0){ note.textContent = 'اختار كمية واحدة على الأقل للإرجاع'; return; }
+  if(!confirm('متأكد من تنفيذ المرتجع؟')) return;
+  if(!navigator.onLine){ note.textContent = 'محتاج نت'; return; }
+  try{
+    const r = await api('processReturn', {items, actingUsername: currentUser.username});
+    showToast('✅ اتنفذ المرتجع بنجاح: ' + fmt(Math.abs(r.total)) + ' ج.م');
+    await refreshProducts();
+    document.getElementById('ret-result').style.display='none';
+    document.getElementById('ret-invoice-id').value = '';
+    returnSaleData = null;
+  }catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
+});
 
 /* ================= إدارة المنتجات ================= */
 let editingProductId = null, pendingImageBase64 = null, pendingImageMeta = null;
@@ -1081,6 +1226,7 @@ function openEmployeeModal(user){
   document.getElementById('em-username').disabled = !!user;
   document.getElementById('em-password').value = '';
   document.getElementById('em-name').value = user ? user.name : '';
+  document.getElementById('em-card').value = user ? (user.cardNumber || '') : '';
   const roleSel = document.getElementById('em-role');
   const allowedRoles = isChief() ? ['cashier','manager','chief'] : ['cashier'];
   roleSel.innerHTML = allowedRoles.map(r=>`<option value="${r}" ${user && user.role===r?'selected':''}>${ROLE_LABEL[r]}</option>`).join('');
@@ -1104,6 +1250,7 @@ document.getElementById('em-save').addEventListener('click', async ()=>{
   const note = document.getElementById('em-note');
   const payload = { actingUsername: currentUser.username, username: document.getElementById('em-username').value.trim(),
     password: document.getElementById('em-password').value, name: document.getElementById('em-name').value.trim(),
+    cardNumber: document.getElementById('em-card').value.trim(),
     role: document.getElementById('em-role').value, branch: document.getElementById('em-branch').value };
   if(!payload.username || !payload.name){ note.textContent = 'اكتب اسم المستخدم والاسم'; return; }
   if(!editingEmployeeUsername && !payload.password){ note.textContent = 'حط كلمة مرور للموظف الجديد'; return; }
