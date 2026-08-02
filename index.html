@@ -208,6 +208,7 @@
     <button class="tab-btn" data-tab="dash">لوحة التحكم</button>
     <button class="tab-btn" data-tab="sales">المبيعات</button>
     <button class="tab-btn" data-tab="returns">المرتجعات</button>
+    <button class="tab-btn" data-tab="customers">العملاء</button>
     <button class="tab-btn" data-tab="reports">التقارير</button>
     <button class="tab-btn mgr-only" data-tab="admin" style="display:none;">المنتجات</button>
     <button class="tab-btn mgr-only" data-tab="employees" style="display:none;">الموظفين</button>
@@ -229,6 +230,11 @@
         </div>
         <div class="cart">
           <h2>🧾 الفاتورة الحالية</h2>
+          <div class="field" style="margin-bottom:10px;">
+            <label>العميل (اختياري — لازم لو "آجل")</label>
+            <div class="barcode-row"><input id="cart-customer-phone" placeholder="رقم هاتف العميل"><button class="icon-btn" id="cart-customer-search">🔍</button></div>
+            <div id="cart-customer-info" style="font-size:12px;color:var(--muted);margin-top:5px;"></div>
+          </div>
           <div id="cart-body"><div class="cart-empty">السلة فاضية.. اختار أصناف من القايمة</div></div>
           <div class="totals" id="totals" style="display:none;">
             <div class="row"><span>الإجمالي الفرعي</span><span id="t-sub">0.00</span></div>
@@ -241,6 +247,10 @@
             <button class="active" data-pay="cash">💵 كاش</button>
             <button data-pay="card">💳 فيزا</button>
             <button data-pay="wallet">📱 محفظة</button>
+            <button data-pay="credit">📒 آجل</button>
+          </div>
+          <div id="points-row" style="display:none;margin-bottom:8px;font-size:12.5px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="use-points-chk"> <span id="use-points-label"></span></label>
           </div>
           <div class="field" id="cash-calc-row" style="display:none;margin-bottom:8px;">
             <label>المبلغ المدفوع من العميل</label>
@@ -262,9 +272,21 @@
         <div class="kpi brick"><div class="lbl">عدد الفواتير</div><div class="val" id="kpi-count">0</div></div>
         <div class="kpi gold"><div class="lbl">متوسط الفاتورة</div><div class="val" id="kpi-avg">0.00 ج.م</div></div>
       </div>
+      <div class="panel">
+        <h3>🔮 تحليل ذكي (اليوم) <button class="btn-primary mgr-only" style="width:auto;padding:8px 16px;font-size:13px;display:none;" id="whatsapp-eod-btn">📲 إرسال تقرير واتساب لصاحب المحل</button></h3>
+        <div class="kpis" style="margin-bottom:0;">
+          <div class="kpi"><div class="lbl">ساعة الذروة اليوم</div><div class="val" id="ai-peak-hour">—</div></div>
+          <div class="kpi brick"><div class="lbl">تقدير إجمالي آخر اليوم (تقريبي)</div><div class="val" id="ai-predicted">—</div></div>
+        </div>
+        <p style="font-size:11.5px;color:var(--muted);margin-top:10px;">* التقدير مبني على وتيرة المبيعات لحد دلوقتي، مش ذكاء اصطناعي حقيقي — مجرد حساب تقريبي بيتحسن كل ما البيانات تزيد.</p>
+      </div>
       <div class="charts-grid">
         <div class="panel"><h3>المبيعات آخر 7 أيام</h3><canvas id="chart-week" height="180"></canvas></div>
         <div class="panel"><h3>طرق الدفع</h3><canvas id="chart-pay" height="180"></canvas></div>
+      </div>
+      <div class="panel mgr-only" style="display:none;">
+        <h3>المبيعات حسب الفرع</h3>
+        <canvas id="chart-branch" height="160"></canvas>
       </div>
       <div class="panel">
         <h3>الأصناف الأكثر مبيعًا</h3>
@@ -309,6 +331,17 @@
       </div>
     </section>
 
+    <!-- CUSTOMERS -->
+    <section class="screen" id="screen-customers">
+      <div class="panel">
+        <h3>العملاء — الولاء والديون <button class="btn-primary" style="width:auto;padding:8px 16px;font-size:13px;" id="customers-refresh-btn">🔄 تحديث</button></h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>الاسم</th><th>الهاتف</th><th>نقاط الولاء</th><th>الدين الحالي</th><th></th></tr></thead>
+          <tbody id="customers-body"><tr><td colspan="5" style="text-align:center;color:var(--muted);">دوس تحديث عشان تشوف العملاء</td></tr></tbody>
+        </table></div>
+      </div>
+    </section>
+
     <!-- REPORTS -->
     <section class="screen" id="screen-reports">
       <div class="panel">
@@ -336,6 +369,9 @@
     <section class="screen" id="screen-admin">
       <div class="panel">
         <h3>المنتجات <button class="btn-primary" style="width:auto;padding:8px 16px;font-size:13px;" id="add-product-btn">+ صنف جديد</button></h3>
+        <div class="field" style="max-width:220px;"><label>فلترة حسب الفرع</label>
+          <select id="prod-branch-filter"><option value="all">كل الفروع</option></select>
+        </div>
         <div class="table-wrap"><table>
           <thead><tr><th></th><th>الاسم</th><th>الفئة</th><th>السعر</th><th>الباركود</th><th>المخزون</th><th>الفرع</th><th></th></tr></thead>
           <tbody id="admin-products-body"></tbody>
@@ -348,8 +384,11 @@
       <div class="kpis" id="presence-kpis"></div>
       <div class="panel">
         <h3>الموظفين <button class="btn-primary" style="width:auto;padding:8px 16px;font-size:13px;" id="add-employee-btn">+ إضافة موظف</button></h3>
+        <div class="field" style="max-width:220px;"><label>فلترة حسب الفرع</label>
+          <select id="emp-branch-filter"><option value="all">كل الفروع</option></select>
+        </div>
         <div class="table-wrap"><table>
-          <thead><tr><th></th><th>اسم المستخدم</th><th>الاسم</th><th>الصلاحية</th><th>الفرع</th><th>الحالة</th><th></th></tr></thead>
+          <thead><tr><th></th><th>اسم المستخدم</th><th>الاسم</th><th>الصلاحية</th><th>الفرع</th><th>الحالة</th><th>آخر ظهور</th><th></th></tr></thead>
           <tbody id="employees-body"></tbody>
         </table></div>
       </div>
@@ -422,7 +461,10 @@
   <div class="modal">
     <h3 id="pm-title">صنف جديد</h3>
     <div class="field"><label>اسم الصنف</label><input id="pm-name"></div>
-    <div class="field"><label>الفئة</label><input id="pm-cat" placeholder="مشروبات / مأكولات / حلويات..."></div>
+    <div class="field"><label>الفئة</label>
+      <select id="pm-cat-select"></select>
+      <input id="pm-cat-new" placeholder="اكتب اسم الفئة الجديدة" style="display:none;margin-top:8px;">
+    </div>
     <div class="field"><label>السعر (ج.م)</label><input id="pm-price" type="number" step="0.5"></div>
     <div class="field"><label>الكمية بالمخزون (سيبها فاضية لو مش عايز تتبعها)</label><input id="pm-stock" type="number" step="1"></div>
     <div class="field"><label>الفرع</label><select id="pm-branch"></select></div>
@@ -591,7 +633,7 @@ let activePay = 'cash';
 let activeCat = null;
 let sessionSales = ls_get('abdo_sales_log', []);
 let lastInvoice = null;
-let weekChart = null, payChart = null;
+let weekChart = null, payChart = null, branchChart = null;
 let heartbeatTimer = null, notifTimer = null;
 let shownNotifIds = ls_get('abdo_shown_notifs', []);
 
@@ -694,19 +736,40 @@ async function refreshProducts(){ try{ const r = await api('getProducts', {}); p
 async function refreshSettings(){ try{ const r = await api('getSettings', {}); appSettings = r.settings; ls_set('abdo_settings', appSettings); applyBranding(); }catch(e){} }
 async function refreshBranches(){ try{ const r = await api('getBranches', {}); branches = r.branches; ls_set('abdo_branches', branches); }catch(e){} }
 
+function branchProducts(){
+  // الكاشير يشوف بس منتجات فرعه، أو المنتجات اللي مفيهاش فرع محدد (متاحة للكل)
+  if(!currentUser || !currentUser.branch) return products;
+  return products.filter(p => !p.branch || p.branch === currentUser.branch);
+}
+
 function renderCats(){
-  const cats = [...new Set(products.map(p=>p.category).filter(Boolean))];
+  const list = branchProducts();
+  const cats = [...new Set(list.map(p=>p.category).filter(Boolean))];
   if(!activeCat || !cats.includes(activeCat)) activeCat = cats[0];
   document.getElementById('cats').innerHTML = cats.map(c=>`<button class="cat-chip ${c===activeCat?'active':''}" data-cat="${c}">${c}</button>`).join('');
   document.querySelectorAll('.cat-chip').forEach(chip=>{ chip.addEventListener('click', ()=>{ activeCat = chip.dataset.cat; renderCats(); renderItems(); }); });
 }
 
 function renderItems(filterText){
-  let list = products.filter(p=>p.active !== false);
-  if(filterText){ const f = filterText.trim().toLowerCase(); list = list.filter(p=> p.name.toLowerCase().includes(f) || String(p.barcode||'').includes(f)); }
+  let list = branchProducts().filter(p=>p.active !== false);
+  let otherBranchMatch = null;
+  if(filterText){
+    const f = filterText.trim().toLowerCase();
+    list = list.filter(p=> p.name.toLowerCase().includes(f) || String(p.barcode||'').includes(f));
+    if(list.length===0){
+      // مفيش في فرعك، دوّر في كل الفروع عشان نقولك فين متوفر
+      const foundElsewhere = products.find(p => (p.name.toLowerCase().includes(f) || String(p.barcode||'').includes(f)) && p.branch && p.branch !== currentUser.branch);
+      if(foundElsewhere) otherBranchMatch = foundElsewhere;
+    }
+  }
   else{ list = list.filter(p=>p.category===activeCat); }
   const grid = document.getElementById('items');
-  if(list.length===0){ grid.innerHTML = '<div style="color:var(--muted);grid-column:1/-1;text-align:center;padding:20px;">مفيش نتايج</div>'; return; }
+  if(list.length===0){
+    grid.innerHTML = otherBranchMatch
+      ? `<div style="color:var(--muted);grid-column:1/-1;text-align:center;padding:20px;">مفيش "${otherBranchMatch.name}" في فرعك، بس متوفر في فرع: <b>${otherBranchMatch.branch}</b></div>`
+      : '<div style="color:var(--muted);grid-column:1/-1;text-align:center;padding:20px;">مفيش نتايج</div>';
+    return;
+  }
   grid.innerHTML = list.map(it=>{
     const hasStock = it.stock !== '' && it.stock !== undefined && it.stock !== null;
     const outOfStock = hasStock && Number(it.stock) <= 0;
@@ -726,7 +789,13 @@ document.addEventListener('keydown', (e)=>{
   if(e.key === 'Enter'){ if(barcodeBuffer.length >= 4) handleScannedBarcode(barcodeBuffer); barcodeBuffer = ''; return; }
   if(e.key.length === 1){ barcodeBuffer += e.key; clearTimeout(barcodeTimer); barcodeTimer = setTimeout(()=>{ barcodeBuffer=''; }, 300); }
 });
-function handleScannedBarcode(code){ const item = products.find(p=>String(p.barcode)===String(code)); if(item){ addToCart(item); } else{ alert('مفيش صنف بالباركود ده: '+code); } }
+function handleScannedBarcode(code){
+  const item = products.find(p=>String(p.barcode)===String(code) && (!p.branch || !currentUser.branch || p.branch===currentUser.branch));
+  if(item){ addToCart(item); return; }
+  const elsewhere = products.find(p=>String(p.barcode)===String(code));
+  if(elsewhere){ alert('الصنف "'+elsewhere.name+'" مش موجود في فرعك، متوفر في فرع: '+(elsewhere.branch||'غير محدد')); }
+  else{ alert('مفيش صنف بالباركود ده: '+code); }
+}
 document.getElementById('scan-btn').addEventListener('click', ()=>{ openCameraScanner((code)=>{ handleScannedBarcode(code); }); });
 
 function openCameraScanner(onResult){
@@ -878,7 +947,7 @@ document.getElementById('checkout-btn').addEventListener('click', async ()=>{
   const entries = Object.values(cart);
   if(entries.length===0) return;
   const t = computeCartTotals();
-  const invoice = { invoiceId: uid(), dateTime: new Date().toISOString(), cashier: currentUser.username,
+  const invoice = { invoiceId: uid(), dateTime: new Date().toISOString(), cashier: currentUser.username, branch: currentUser.branch || '',
     items: entries.map(e=>({id:e.id, n:e.name, qty:e.qty, p:e.price})), subtotal: t.sub, tax: t.tax, total: t.grand, discount: t.discountAmount, paymentMethod: activePay, synced: false };
   sessionSales.unshift(invoice); ls_set('abdo_sales_log', sessionSales); queueSale(invoice); lastInvoice = invoice;
   entries.forEach(e=>{ const p = products.find(x=>x.id===e.id); if(p && p.stock !== '' && p.stock !== undefined && p.stock !== null){ p.stock = Math.max(0, Number(p.stock) - e.qty); } });
@@ -904,11 +973,12 @@ document.getElementById('manual-sync-btn').addEventListener('click', async ()=>{
   const q = ls_get('abdo_pending_sales', []);
   if(!navigator.onLine){ showToast('⚠️ مفيش اتصال بالنت دلوقتي'); return; }
   if(q.length === 0){ showToast('✅ كل الفواتير متزامنة، مفيش حاجة معلقة'); return; }
-  showToast('⏳ جاري مزامنة ' + q.length + ' فاتورة...');
+  const idsList = q.map(s=>s.invoiceId).slice(0,3).join('، ') + (q.length>3 ? ' و'+(q.length-3)+' غيرهم' : '');
+  showToast('⏳ جاري مزامنة: ' + idsList);
   await syncPending();
   const remaining = ls_get('abdo_pending_sales', []);
   if(remaining.length === 0) showToast('✅ تمت مزامنة كل الفواتير بنجاح');
-  else showToast('⚠️ اتزامن جزء، لسه ' + remaining.length + ' فاتورة معلقة');
+  else showToast('⚠️ لسه معلقة: ' + remaining.map(s=>s.invoiceId).slice(0,3).join('، ') + (remaining.length>3?' و'+(remaining.length-3)+' غيرهم':''));
 });
 
 async function syncPending(){
@@ -996,7 +1066,7 @@ function printReceipt(invoice){
 
 /* ================= لوحة التحكم ================= */
 function renderDashboard(){
-  const all = [...sessionSales];
+  const all = sessionSales.filter(inv=>inv.status !== 'ملغية');
   const total = all.reduce((s,i)=>s+i.total,0);
   document.getElementById('kpi-today').textContent = fmt(total)+' ج.م';
   document.getElementById('kpi-count').textContent = all.length;
@@ -1014,6 +1084,15 @@ function renderDashboard(){
   all.forEach(inv=>{ payTotals[inv.paymentMethod] = (payTotals[inv.paymentMethod]||0) + inv.total; });
   if(payChart) payChart.destroy();
   payChart = new Chart(document.getElementById('chart-pay'), { type:'doughnut', data:{ labels:['كاش','فيزا','محفظة'], datasets:[{data:[payTotals.cash, payTotals.card, payTotals.wallet], backgroundColor:['#5c6b3f','#b1502f','#c8992b']}] }, options:{ plugins:{legend:{position:'bottom'}} } });
+
+  // شارت المبيعات حسب الفرع (يظهر بس للمدير/الرئيس ولو فيه أكتر من فرع مسجل مبيعات)
+  const branchCanvas = document.getElementById('chart-branch');
+  if(branchCanvas){
+    const branchTotals = {};
+    all.forEach(inv=>{ const b = inv.branch || 'غير محدد'; branchTotals[b] = (branchTotals[b]||0) + inv.total; });
+    if(branchChart) branchChart.destroy();
+    branchChart = new Chart(branchCanvas, { type:'bar', data:{ labels:Object.keys(branchTotals), datasets:[{label:'المبيعات', data:Object.values(branchTotals), backgroundColor:'#c8992b', borderRadius:6}] }, options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true}} } });
+  }
 }
 
 /* ================= سجل المبيعات ================= */
@@ -1032,19 +1111,29 @@ function renderSales(){
   if(list.length===0){ tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px;">مفيش فواتير في الفترة دي</td></tr>'; return; }
   const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة', 'مرتجع':'مرتجع'};
   tbody.innerHTML = list.map((inv)=>`
-    <tr><td>${inv.invoiceId}</td><td>${new Date(inv.dateTime).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})}</td><td>${inv.cashier}</td>
+    <tr style="${inv.status==='ملغية'?'opacity:0.55;text-decoration:line-through;':''}"><td>${inv.invoiceId}</td><td>${new Date(inv.dateTime).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})}</td><td>${inv.cashier}</td>
       <td><span class="badge ${inv.paymentMethod==='cash'?'cash':inv.paymentMethod==='مرتجع'?'low':'card'}">${payLabel[inv.paymentMethod]||inv.paymentMethod}</span></td><td>${fmt(inv.total)} ج.م</td>
-      <td>${inv.synced ? '<span class="badge cash">متزامن</span>' : '<span class="badge pending">في انتظار المزامنة</span>'}</td>
-      <td style="display:flex;gap:6px;"><button class="small-btn" data-id="${inv.invoiceId}" data-act="print-sale">🖨</button>${isChief()?`<button class="small-btn danger" data-id="${inv.invoiceId}" data-act="del-sale">🗑</button>`:''}</td></tr>`).join('');
+      <td>${inv.status==='ملغية' ? '<span class="badge low">ملغية</span>' : (inv.synced ? '<span class="badge cash">متزامن</span>' : '<span class="badge pending">في انتظار المزامنة</span>')}</td>
+      <td style="display:flex;gap:6px;"><button class="small-btn" data-id="${inv.invoiceId}" data-act="print-sale">🖨</button>${isManagerOrAbove() && inv.status!=='ملغية'?`<button class="small-btn danger" data-id="${inv.invoiceId}" data-act="cancel-sale">❌ إلغاء</button>`:''}${isChief()?`<button class="small-btn danger" data-id="${inv.invoiceId}" data-act="del-sale">🗑</button>`:''}</td></tr>`).join('');
   tbody.querySelectorAll('[data-act="print-sale"]').forEach(b=>{ b.addEventListener('click', ()=>{ const inv = sessionSales.find(s=>s.invoiceId===b.dataset.id); if(inv) printReceipt(inv); }); });
+  tbody.querySelectorAll('[data-act="cancel-sale"]').forEach(b=>{ b.addEventListener('click', async ()=>{
+    const inv = sessionSales.find(s=>s.invoiceId===b.dataset.id);
+    if(!inv) return;
+    if(!confirm('متأكد من إلغاء الفاتورة ' + inv.invoiceId + '؟ هتفضل متسجلة بس بحالة ملغية')) return;
+    if(!navigator.onLine){ showToast('⚠️ محتاج نت عشان تلغي فاتورة'); return; }
+    try{ await api('cancelSale', {invoiceId: inv.invoiceId, actingUsername: currentUser.username});
+      inv.status = 'ملغية'; ls_set('abdo_sales_log', sessionSales);
+      renderSales(); renderDashboard(); showToast('✅ اتلغت الفاتورة');
+    }catch(e){ showToast('⚠️ ' + e.message); }
+  }); });
   tbody.querySelectorAll('[data-act="del-sale"]').forEach(b=>{ b.addEventListener('click', async ()=>{
     const inv = sessionSales.find(s=>s.invoiceId===b.dataset.id);
     if(!inv) return;
-    if(!confirm('متأكد من حذف الفاتورة ' + inv.invoiceId + '؟ الإجراء ده مينفعش يتراجع فيه')) return;
+    if(!confirm('متأكد من حذف الفاتورة ' + inv.invoiceId + ' نهائيًا؟ الإجراء ده مينفعش يتراجع فيه')) return;
     if(!navigator.onLine){ showToast('⚠️ محتاج نت عشان تحذف فاتورة'); return; }
     try{ await api('deleteSale', {invoiceId: inv.invoiceId, actingUsername: currentUser.username});
       sessionSales = sessionSales.filter(s=>s.invoiceId !== inv.invoiceId); ls_set('abdo_sales_log', sessionSales);
-      renderSales(); renderDashboard(); showToast('✅ اتمسحت الفاتورة');
+      renderSales(); renderDashboard(); showToast('✅ اتمسحت الفاتورة نهائيًا');
     }catch(e){ showToast('⚠️ ' + e.message); }
   }); });
 }
@@ -1097,7 +1186,7 @@ document.getElementById('ret-confirm-btn').addEventListener('click', async ()=>{
   if(!confirm('متأكد من تنفيذ المرتجع؟')) return;
   if(!navigator.onLine){ note.textContent = 'محتاج نت'; return; }
   try{
-    const r = await api('processReturn', {items, actingUsername: currentUser.username});
+    const r = await api('processReturn', {items, actingUsername: currentUser.username, branch: currentUser.branch || ''});
     showToast('✅ اتنفذ المرتجع بنجاح: ' + fmt(Math.abs(r.total)) + ' ج.م');
     await refreshProducts();
     document.getElementById('ret-result').style.display='none';
@@ -1111,13 +1200,27 @@ let editingProductId = null, pendingImageBase64 = null, pendingImageMeta = null;
 function populateBranchSelect(sel, selected){
   sel.innerHTML = branches.map(b=>`<option value="${b.name}" ${b.name===selected?'selected':''}>${b.name}</option>`).join('');
 }
+function populateCategorySelect(selected){
+  const sel = document.getElementById('pm-cat-select');
+  const cats = [...new Set(products.map(p=>p.category).filter(Boolean))];
+  if(selected && !cats.includes(selected)) cats.push(selected);
+  sel.innerHTML = cats.map(c=>`<option value="${c}" ${c===selected?'selected':''}>${c}</option>`).join('') + '<option value="__new__">➕ فئة جديدة...</option>';
+  const newInput = document.getElementById('pm-cat-new');
+  newInput.style.display = 'none'; newInput.value = '';
+}
+document.getElementById('pm-cat-select').addEventListener('change', (e)=>{
+  const newInput = document.getElementById('pm-cat-new');
+  if(e.target.value === '__new__'){ newInput.style.display='block'; newInput.focus(); }
+  else{ newInput.style.display='none'; }
+});
+
 document.getElementById('add-product-btn').addEventListener('click', ()=>openProductModal());
 function openProductModal(product){
   editingProductId = product ? product.id : null;
   pendingImageBase64 = null; pendingImageMeta = null;
   document.getElementById('pm-title').textContent = product ? 'تعديل صنف' : 'صنف جديد';
   document.getElementById('pm-name').value = product ? product.name : '';
-  document.getElementById('pm-cat').value = product ? product.category : '';
+  populateCategorySelect(product ? product.category : '');
   document.getElementById('pm-price').value = product ? product.price : '';
   document.getElementById('pm-stock').value = product && product.stock !== '' && product.stock !== undefined ? product.stock : '';
   document.getElementById('pm-barcode').value = product ? product.barcode : '';
@@ -1138,7 +1241,9 @@ document.getElementById('pm-image-file').addEventListener('change', async (e)=>{
 });
 document.getElementById('pm-save').addEventListener('click', async ()=>{
   const note = document.getElementById('pm-note');
-  const p = { id: editingProductId, name: document.getElementById('pm-name').value.trim(), category: document.getElementById('pm-cat').value.trim(),
+  const catSelectVal = document.getElementById('pm-cat-select').value;
+  const category = catSelectVal === '__new__' ? document.getElementById('pm-cat-new').value.trim() : catSelectVal;
+  const p = { id: editingProductId, name: document.getElementById('pm-name').value.trim(), category: category,
     price: Number(document.getElementById('pm-price').value)||0, stock: document.getElementById('pm-stock').value === '' ? '' : Number(document.getElementById('pm-stock').value),
     barcode: document.getElementById('pm-barcode').value.trim(), active: true, branch: document.getElementById('pm-branch').value,
     image: document.getElementById('pm-image-preview').style.display==='block' && !pendingImageBase64 ? document.getElementById('pm-image-preview').src : '' };
@@ -1155,9 +1260,17 @@ document.getElementById('pm-save').addEventListener('click', async ()=>{
   }catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
 });
 function renderAdminProducts(){
+  const filterSel = document.getElementById('prod-branch-filter');
+  const currentVal = filterSel.value || 'all';
+  filterSel.innerHTML = '<option value="all">كل الفروع</option>' + branches.map(b=>`<option value="${b.name}">${b.name}</option>`).join('');
+  filterSel.value = currentVal;
+  filterSel.onchange = renderAdminProducts;
+
   const tbody = document.getElementById('admin-products-body');
-  if(products.length===0){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);">مفيش منتجات</td></tr>'; return; }
-  tbody.innerHTML = products.map(p=>{
+  const filterVal = filterSel.value;
+  const list = filterVal==='all' ? products : products.filter(p=>p.branch===filterVal);
+  if(list.length===0){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);">مفيش منتجات في الفرع ده</td></tr>'; return; }
+  tbody.innerHTML = list.map(p=>{
     const hasStock = p.stock !== '' && p.stock !== undefined && p.stock !== null;
     const low = hasStock && Number(p.stock) <= 5;
     return `<tr><td>${p.image ? `<img class="prod-thumb" src="${p.image}">` : '—'}</td><td>${p.name}</td><td>${p.category}</td><td>${fmt(p.price)} ج.م</td><td>${p.barcode||'-'}</td>
@@ -1177,7 +1290,7 @@ let editingEmployeeUsername = null, pendingEmpImageBase64 = null, pendingEmpImag
 let presenceCache = [];
 
 async function renderEmployeesTab(){
-  document.getElementById('employees-body').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);">جاري التحميل...</td></tr>';
+  document.getElementById('employees-body').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);">جاري التحميل...</td></tr>';
   document.getElementById('presence-kpis').innerHTML = '';
   if(!navigator.onLine){ showToast('⚠️ محتاج نت عشان تشوف الموظفين والحضور'); return; }
   try{
@@ -1191,24 +1304,44 @@ async function renderEmployeesTab(){
       <div class="kpi gold"><div class="lbl">أوفلاين</div><div class="val">${presR.offlineCount}</div></div>
       <div class="kpi"><div class="lbl">فروع مسموحة أوف لاين</div><div class="val">${presR.allowedOfflineBranches} / ${presR.totalBranches}</div></div>`;
 
-    const tbody = document.getElementById('employees-body');
-    tbody.innerHTML = usersR.users.map(u=>{
-      const pres = presMap[u.username];
-      const online = pres && pres.online;
-      return `<tr><td>${u.photo ? `<img class="emp-avatar" src="${u.photo}">` : '👤'}</td><td>${u.username}</td><td>${u.name}</td>
-        <td><span class="badge ${u.role}">${ROLE_LABEL[u.role]}</span></td><td>${u.branch||'—'}</td>
-        <td><span class="badge ${online?'online':'offline'}">${online?'أونلاين':'أوفلاين'}</span></td>
-        <td style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button class="small-btn" data-act="edit-emp" data-username="${u.username}">تعديل</button>
-          <button class="small-btn" data-act="note-emp" data-username="${u.username}">📝 ملاحظة</button>
-        </td></tr>`;
-    }).join('');
-    tbody.querySelectorAll('[data-act="edit-emp"]').forEach(b=>b.addEventListener('click', ()=>{ const u = usersR.users.find(x=>x.username===b.dataset.username); openEmployeeModal(u); }));
-    tbody.querySelectorAll('[data-act="note-emp"]').forEach(b=>b.addEventListener('click', ()=>openNotesFlow(b.dataset.username)));
+    const branchFilterSel = document.getElementById('emp-branch-filter');
+    const currentFilterVal = branchFilterSel.value || 'all';
+    branchFilterSel.innerHTML = '<option value="all">كل الفروع</option>' + branches.map(b=>`<option value="${b.name}">${b.name}</option>`).join('');
+    branchFilterSel.value = currentFilterVal;
+
+    function fmtLastSeen(v){
+      if(!v) return '—';
+      const d = new Date(v);
+      if(isNaN(d.getTime())) return '—';
+      return d.toLocaleString('ar-EG', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+    }
+
+    function paintEmployees(){
+      const filterVal = branchFilterSel.value;
+      const filteredUsers = filterVal==='all' ? usersR.users : usersR.users.filter(u=>u.branch===filterVal);
+      const tbody = document.getElementById('employees-body');
+      if(filteredUsers.length===0){ tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);">مفيش موظفين في الفرع ده</td></tr>'; return; }
+      tbody.innerHTML = filteredUsers.map(u=>{
+        const pres = presMap[u.username];
+        const online = pres && pres.online;
+        return `<tr><td>${u.photo ? `<img class="emp-avatar" src="${u.photo}">` : '👤'}</td><td>${u.username}</td><td>${u.name}</td>
+          <td><span class="badge ${u.role}">${ROLE_LABEL[u.role]}</span></td><td>${u.branch||'—'}</td>
+          <td><span class="badge ${online?'online':'offline'}">${online?'أونلاين':'أوفلاين'}</span></td>
+          <td style="font-size:12px;color:var(--muted);">${fmtLastSeen(pres ? pres.lastSeen : u.lastActive)}</td>
+          <td style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="small-btn" data-act="edit-emp" data-username="${u.username}">تعديل</button>
+            <button class="small-btn" data-act="note-emp" data-username="${u.username}">📝 ملاحظة</button>
+          </td></tr>`;
+      }).join('');
+      tbody.querySelectorAll('[data-act="edit-emp"]').forEach(b=>b.addEventListener('click', ()=>{ const u = usersR.users.find(x=>x.username===b.dataset.username); openEmployeeModal(u); }));
+      tbody.querySelectorAll('[data-act="note-emp"]').forEach(b=>b.addEventListener('click', ()=>openNotesFlow(b.dataset.username)));
+    }
+    paintEmployees();
+    branchFilterSel.onchange = paintEmployees;
 
     const notifTo = document.getElementById('notif-to');
     notifTo.innerHTML = '<option value="الكل">كل الموظفين</option>' + usersR.users.map(u=>`<option value="${u.username}">${u.name} (${ROLE_LABEL[u.role]})</option>`).join('');
-  }catch(e){ document.getElementById('employees-body').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);">حصل خطأ: '+e.message+'</td></tr>'; }
+  }catch(e){ document.getElementById('employees-body').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--danger);">حصل خطأ: '+e.message+'</td></tr>'; }
 }
 
 async function openNotesFlow(username){
