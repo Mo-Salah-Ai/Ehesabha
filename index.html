@@ -172,6 +172,7 @@
     .item-thumb{font-size:22px;} .charts-grid{gap:12px;} .panel h3{font-size:14.5px;}
   }
 </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -194,6 +195,7 @@
       <span class="status-dot" id="status-dot"></span>
       <span class="status-txt" id="status-txt">متصل</span>
       <button class="sync-btn" id="manual-sync-btn" title="مزامنة الفواتير المعلقة">🔄 مزامنة <span class="count" id="pending-count" style="display:none;">0</span></button>
+      <button class="sync-btn" id="lang-toggle-btn" title="English/العربية">EN</button>
       <button class="sync-btn" id="theme-toggle-btn" title="الوضع الليلي/النهاري">🌙</button>
       <div class="who">
         <span class="avatar" id="who-avatar">؟</span>
@@ -210,6 +212,7 @@
     <button class="tab-btn" data-tab="returns">المرتجعات</button>
     <button class="tab-btn" data-tab="customers">العملاء</button>
     <button class="tab-btn" data-tab="reports">التقارير</button>
+    <button class="tab-btn" data-tab="debt">سداد الديون</button>
     <button class="tab-btn mgr-only" data-tab="admin" style="display:none;">المنتجات</button>
     <button class="tab-btn mgr-only" data-tab="employees" style="display:none;">الموظفين</button>
     <button class="tab-btn mgr-only" data-tab="branches" style="display:none;">الفروع</button>
@@ -290,6 +293,14 @@
         <canvas id="chart-branch" height="160"></canvas>
       </div>
       <div class="panel">
+        <h3>المرتجعات</h3>
+        <div class="kpis" style="margin-bottom:10px;">
+          <div class="kpi brick"><div class="lbl">إجمالي المرتجعات</div><div class="val" id="kpi-returns">0.00 ج.م</div></div>
+          <div class="kpi"><div class="lbl">عدد عمليات المرتجع</div><div class="val" id="kpi-returns-count">0</div></div>
+        </div>
+        <canvas id="chart-returns" height="140"></canvas>
+      </div>
+      <div class="panel">
         <h3>الأصناف الأكثر مبيعًا</h3>
         <div class="table-wrap"><table><thead><tr><th>الصنف</th><th>الكمية</th><th>الإجمالي</th></tr></thead>
         <tbody id="top-items"><tr><td colspan="3" style="color:var(--muted);text-align:center;">لسه مفيش مبيعات</td></tr></tbody></table></div>
@@ -337,9 +348,25 @@
       <div class="panel">
         <h3>العملاء — الولاء والديون <button class="btn-primary" style="width:auto;padding:8px 16px;font-size:13px;" id="customers-add-btn">+ إضافة عميل</button> <button class="btn-ghost" style="width:auto;padding:8px 16px;font-size:13px;" id="customers-refresh-btn">🔄 تحديث</button></h3>
         <div class="table-wrap"><table>
-          <thead><tr><th>الاسم</th><th>الهاتف</th><th>نقاط الولاء</th><th>الدين الحالي</th><th></th></tr></thead>
+          <thead><tr><th>الاسم</th><th>الهاتف</th><th>البطاقة الوطنية</th><th>نقاط الولاء</th><th>الدين الحالي</th><th></th></tr></thead>
           <tbody id="customers-body"><tr><td colspan="5" style="text-align:center;color:var(--muted);">دوس تحديث عشان تشوف العملاء</td></tr></tbody>
         </table></div>
+      </div>
+    </section>
+
+    <!-- DEBT SETTLEMENT -->
+    <section class="screen" id="screen-debt">
+      <div class="panel">
+        <h3>سداد ديون العملاء</h3>
+        <div class="field" style="max-width:320px;"><label>رقم هاتف العميل</label>
+          <div class="barcode-row"><input id="debt-phone" placeholder="مثلاً 010xxxxxxxx"><button class="icon-btn" id="debt-search-btn">🔍</button></div>
+        </div>
+        <div id="debt-customer-info" style="margin-bottom:12px;font-size:13px;"></div>
+        <div id="debt-actions" style="display:none;">
+          <div class="field" style="max-width:220px;"><label>مبلغ التسديد (ج.م)</label><input type="number" id="debt-amount" step="0.5" placeholder="0.00"></div>
+          <button class="btn-primary" id="debt-pay-btn" style="width:auto;padding:11px 22px;">💰 تنفيذ التسديد</button>
+        </div>
+        <div class="login-err" id="debt-note" style="color:var(--olive-dark);margin-top:8px;"></div>
       </div>
     </section>
 
@@ -428,6 +455,7 @@
         <div class="field"><label>نسبة الضريبة (%)</label><input id="st-tax-rate" type="number" step="0.5"></div>
         <div class="field"><label>الرقم الضريبي (مهم للسعودية)</label><input id="st-vat-number" placeholder="300000000000003"></div>
         <div class="field"><label>واتساب صاحب المحل (لإرسال تقرير آخر اليوم)</label><input id="st-owner-whatsapp" placeholder="201000000000 (كود الدولة من غير + أو صفر)"></div>
+        <div class="field"><label>مبلغ الشراء لكل 100 نقطة (ج.م)</label><input id="st-points-rate" type="number" step="10" placeholder="1000"></div>
         <div class="login-err" id="st-note" style="color:var(--olive-dark);"></div>
         <button class="btn-primary" id="st-save-btn" style="width:auto;padding:11px 22px;">حفظ الإعدادات</button>
         <p style="font-size:12px;color:var(--muted);margin-top:14px;">
@@ -525,7 +553,28 @@ const LOGO_URL = "https://www.appsheet.com:443/fsimage.png?appid=92827f74-7743-4
 // زرار الدعم ده خط اتصال مباشر بالمبرمج (مش دعم عملاء المحل)
 const DEVELOPER_SUPPORT_URL = "https://sites.google.com/view/mo-salah-ai/cv";
 let TAX_RATE_PCT = 14;
-const POINTS_PER_1000_AMOUNT = 1000; // نقطة واحدة لكل 1000 ج.م مصروفة
+function getPointsRate(){ return Number(appSettings.pointsRate) || 100; } // نقاط لكل 1000 ج.م
+
+/* ================= نظام الترجمة ================= */
+const TRANSLATIONS = {
+  ar: { pos:'الكاشير', dash:'لوحة التحكم', sales:'المبيعات', returns:'المرتجعات', customers:'العملاء', reports:'التقارير', debt:'سداد الديون', admin:'المنتجات', employees:'الموظفين', branches:'الفروع', settings:'الإعدادات', lang:'English' },
+  en: { pos:'POS', dash:'Dashboard', sales:'Sales', returns:'Returns', customers:'Customers', reports:'Reports', debt:'Debt Pay', admin:'Products', employees:'Employees', branches:'Branches', settings:'Settings', lang:'العربية' }
+};
+let currentLang = ls_get('abdo_lang', 'ar');
+function applyLang(){
+  document.documentElement.setAttribute('lang', currentLang);
+  document.documentElement.setAttribute('dir', currentLang==='ar'?'rtl':'ltr');
+  document.querySelectorAll('.tab-btn').forEach(b=>{ const k=b.dataset.tab; if(TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][k]) b.textContent = TRANSLATIONS[currentLang][k]; });
+  const langBtn = document.getElementById('lang-toggle-btn');
+  if(langBtn) langBtn.textContent = TRANSLATIONS[currentLang] ? TRANSLATIONS[currentLang].lang : 'EN';
+}
+document.getElementById('lang-toggle-btn').addEventListener('click', ()=>{
+  currentLang = currentLang==='ar'?'en':'ar';
+  ls_set('abdo_lang', currentLang);
+  applyLang();
+  setTimeout(()=>location.reload(), 150);
+});
+
 
 /* ================= أدوات عامة ================= */
 function fmt(n){ return (n||0).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -713,6 +762,7 @@ function updateAvatar(){
 function enterApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
+  applyLang();
   document.getElementById('who-name').textContent = currentUser.name + ' ('+ROLE_LABEL[currentUser.role]+')';
   updateAvatar();
   document.querySelectorAll('.mgr-only').forEach(el=>{ el.style.display = isManagerOrAbove() ? '' : 'none'; });
@@ -1011,6 +1061,7 @@ function renderHeldList(){
 document.getElementById('checkout-btn').addEventListener('click', async ()=>{
   const entries = Object.values(cart);
   if(entries.length===0) return;
+  if(activePay === 'credit' && !lookedUpCustomer){ showToast('⚠️ لازم تختار عميل من القايمة للبيع الآجل'); return; }
   const t = computeCartTotals();
   const invoice = { invoiceId: uid(), dateTime: new Date().toISOString(), cashier: currentUser.username, branch: currentUser.branch || '',
     items: entries.map(e=>({id:e.id, n:e.name, qty:e.qty, p:e.price})), subtotal: t.sub, tax: t.tax, total: t.grand, discount: t.discountAmount,
@@ -1021,7 +1072,7 @@ document.getElementById('checkout-btn').addEventListener('click', async ()=>{
 
   // لو فيه عميل متعرّف عليه، نحدّث نقاطه ودينه (نقطة واحدة لكل 1000 ج.م مصروفة، وخصم أي نقط اتستخدمت، وتسجيل دين لو الدفع "آجل")
   if(lookedUpCustomer){
-    const pointsEarned = Math.floor(t.grand / POINTS_PER_1000_AMOUNT);
+    const pointsEarned = Math.floor((t.grand / 1000) * getPointsRate());
     const redeemPoints = t.pointsDiscount > 0 ? t.pointsDiscount : 0;
     const addDebt = activePay === 'credit' ? t.grand : 0;
     if(pointsEarned > 0 || redeemPoints > 0 || addDebt > 0){
@@ -1296,6 +1347,11 @@ document.getElementById('ret-confirm-btn').addEventListener('click', async ()=>{
   try{
     const r = await api('processReturn', {items, actingUsername: currentUser.username, branch: currentUser.branch || ''});
     showToast('✅ اتنفذ المرتجع بنجاح: ' + fmt(Math.abs(r.total)) + ' ج.م');
+    // Add return to local sales log so it appears in reports immediately
+    const retSub = items.reduce((s,it)=>s+Number(it.qty)*Number(it.p),0);
+    const retTax = retSub * (TAX_RATE_PCT/100);
+    const retInv = { invoiceId: r.invoiceId, dateTime: new Date().toISOString(), cashier: currentUser.username, branch: currentUser.branch || '', items: items.map(it=>({id:it.id||'', n:it.n, qty:Number(it.qty), p:Number(it.p)})), subtotal: -retSub, tax: -retTax, total: -(retSub+retTax), discount: 0, customerPhone: '', paymentMethod: 'مرتجع', synced: true, status: 'سليمة' };
+    sessionSales.unshift(retInv); ls_set('abdo_sales_log', sessionSales);
     await refreshProducts();
     document.getElementById('ret-result').style.display='none';
     document.getElementById('ret-invoice-id').value = '';
@@ -1312,7 +1368,7 @@ async function renderCustomers(){
     const r = await api('getCustomers', {});
     if(!r.customers.length){ tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">مفيش عملاء مسجلين لسه</td></tr>'; return; }
     tbody.innerHTML = r.customers.map(c=>`
-      <tr><td>${c.name}</td><td>${c.phone}</td><td><span class="badge cash">${c.points}</span></td>
+      <tr><td>${c.name}</td><td>${c.phone}</td><td>${c.cardNumber||'—'}</td><td><span class="badge cash">${c.points}</span></td>
         <td>${c.debt>0?`<span class="badge low">${fmt(c.debt)} ج.م</span>`:'—'}</td>
         <td>${c.debt>0?`<button class="small-btn" data-phone="${c.phone}" data-act="settle">💰 تسديد</button>`:''}</td></tr>`).join('');
     tbody.querySelectorAll('[data-act="settle"]').forEach(b=>b.addEventListener('click', async ()=>{
@@ -1329,12 +1385,53 @@ document.getElementById('customers-add-btn').addEventListener('click', async ()=
   const phone = prompt('رقم هاتف العميل:');
   if(!phone) return;
   const name = prompt('اسم العميل (اختياري):') || phone;
+  const cardNumber = prompt('رقم البطاقة الوطنية (اختياري):') || '';
   if(!navigator.onLine){ showToast('⚠️ محتاج نت'); return; }
-  try{ await api('saveCustomer', {phone, name}); showToast('✅ اتضاف العميل'); renderCustomers(); }
+  try{ await api('saveCustomer', {phone, name, cardNumber}); showToast('✅ اتضاف العميل'); renderCustomers(); }
   catch(e){ showToast('⚠️ '+e.message); }
 });
 
 function queueCustomerUpdate(payload){ const q = ls_get('abdo_pending_customer_updates', []); q.push(payload); ls_set('abdo_pending_customer_updates', q); }
+
+
+/* ================= سداد الديون ================= */
+document.getElementById('debt-search-btn').addEventListener('click', async ()=>{
+  const phone = document.getElementById('debt-phone').value.trim();
+  const info = document.getElementById('debt-customer-info');
+  const actions = document.getElementById('debt-actions');
+  const note = document.getElementById('debt-note');
+  note.textContent = ''; actions.style.display = 'none'; info.textContent = '';
+  if(!phone){ note.textContent = 'اكتب رقم الهاتف'; return; }
+  if(!navigator.onLine){ note.textContent = 'محتاج نت'; return; }
+  info.textContent = 'جاري البحث...';
+  try{
+    const r = await api('getCustomers', {});
+    const found = r.customers.find(c=>String(c.phone)===phone);
+    if(found){
+      info.innerHTML = '<b>العميل:</b> ' + found.name + ' — <b>الدين:</b> ' + fmt(found.debt) + ' ج.م' + (found.cardNumber ? ' — <b>البطاقة:</b> ' + found.cardNumber : '');
+      if(found.debt > 0){ actions.style.display = 'block'; document.getElementById('debt-amount').value = ''; }
+      else{ note.textContent = 'العميل مفيش عليه ديون'; }
+    } else { info.textContent = 'مفيش عميل بالرقم ده'; }
+  }catch(e){ info.textContent = 'حصل خطأ: ' + e.message; }
+});
+
+document.getElementById('debt-pay-btn').addEventListener('click', async ()=>{
+  const phone = document.getElementById('debt-phone').value.trim();
+  const amount = Number(document.getElementById('debt-amount').value);
+  const note = document.getElementById('debt-note');
+  if(!phone || isNaN(amount) || amount <= 0){ note.textContent = 'اكتب مبلغ صحيح'; return; }
+  if(!navigator.onLine){ note.textContent = 'محتاج نت'; return; }
+  note.textContent = 'جاري التسديد...';
+  try{
+    await api('settleDebt', {phone, amount});
+    showToast('✅ تم التسديد');
+    document.getElementById('debt-actions').style.display = 'none';
+    document.getElementById('debt-customer-info').textContent = '';
+    document.getElementById('debt-phone').value = '';
+    note.textContent = 'تم التسديد بنجاح';
+    renderCustomers();
+  }catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
+});
 
 /* ================= إدارة المنتجات ================= */
 let editingProductId = null, pendingImageBase64 = null, pendingImageMeta = null;
@@ -1603,6 +1700,7 @@ function loadSettingsForm(){
   document.getElementById('st-tax-rate').value = appSettings.taxRate !== undefined ? appSettings.taxRate : 14;
   document.getElementById('st-vat-number').value = appSettings.vatNumber || '';
   document.getElementById('st-owner-whatsapp').value = appSettings.ownerWhatsapp || '';
+  document.getElementById('st-points-rate').value = appSettings.pointsRate !== undefined ? appSettings.pointsRate : 100;
   const savedColors = ls_get('abdo_custom_colors', {});
   document.getElementById('st-color-olive').value = savedColors.olive || '#5c6b3f';
   document.getElementById('st-color-brick').value = savedColors.brick || '#b1502f';
@@ -1613,7 +1711,8 @@ document.getElementById('st-save-btn').addEventListener('click', async ()=>{
   if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت عشان تحفظ الإعدادات'; return; }
   const payload = { storeName: document.getElementById('st-store-name').value.trim() || 'احسبها', country: document.getElementById('st-country').value,
     taxRate: Number(document.getElementById('st-tax-rate').value) || 14, vatNumber: document.getElementById('st-vat-number').value.trim(),
-    ownerWhatsapp: document.getElementById('st-owner-whatsapp').value.trim() };
+    ownerWhatsapp: document.getElementById('st-owner-whatsapp').value.trim(),
+    pointsRate: Number(document.getElementById('st-points-rate').value) || 100 };
   try{ note.textContent = 'جاري الحفظ...'; await api('saveSettings', payload); appSettings = payload; ls_set('abdo_settings', appSettings); applyBranding(); note.textContent = 'تم الحفظ بنجاح.'; }
   catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
 });
