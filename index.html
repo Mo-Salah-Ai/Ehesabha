@@ -115,6 +115,7 @@
   .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);margin-bottom:18px;}
   .panel h3{margin:0 0 14px;font-size:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
   .charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:18px;}
+  .charts-grid canvas, #chart-branch{min-height:160px;}
   @media (max-width:880px){.charts-grid{grid-template-columns:1fr;}}
   table{width:100%;border-collapse:collapse;font-size:13.5px;}
   .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
@@ -269,10 +270,14 @@
 
     <!-- DASHBOARD -->
     <section class="screen" id="screen-dash">
+      <div class="field" style="max-width:220px;"><label>الفترة</label>
+        <select id="dash-period"><option value="all" selected>الجلسة الحالية</option><option value="day">اليوم</option><option value="week">آخر 7 أيام</option><option value="month">الشهر الحالي</option></select>
+      </div>
       <div class="kpis">
-        <div class="kpi"><div class="lbl">مبيعات الجلسة</div><div class="val" id="kpi-today">0.00 ج.م</div></div>
+        <div class="kpi"><div class="lbl">مبيعات الفترة</div><div class="val" id="kpi-today">0.00 ج.م</div></div>
         <div class="kpi brick"><div class="lbl">عدد الفواتير</div><div class="val" id="kpi-count">0</div></div>
         <div class="kpi gold"><div class="lbl">متوسط الفاتورة</div><div class="val" id="kpi-avg">0.00 ج.م</div></div>
+        <div class="kpi mgr-only" style="display:none;"><div class="lbl">صافي الربح التقريبي*</div><div class="val" id="kpi-profit">0.00 ج.م</div></div>
       </div>
       <div class="panel">
         <h3>🔮 تحليل ذكي (اليوم) <button class="btn-primary mgr-only" style="width:auto;padding:8px 16px;font-size:13px;display:none;" id="whatsapp-eod-btn">📲 إرسال تقرير واتساب لصاحب المحل</button></h3>
@@ -492,6 +497,7 @@
     </div>
     <div class="field"><label>السعر (ج.م)</label><input id="pm-price" type="number" step="0.5"></div>
     <div class="field"><label>الكمية بالمخزون (سيبها فاضية لو مش عايز تتبعها)</label><input id="pm-stock" type="number" step="1"></div>
+    <div class="field"><label>سعر التكلفة (اختياري، عشان نحسب صافي الربح)</label><input id="pm-cost" type="number" step="0.5"></div>
     <div class="field"><label>الفرع</label><select id="pm-branch"></select></div>
     <div class="field">
       <label>الباركود</label>
@@ -1199,11 +1205,26 @@ async function renderCreditSummary(){
 }
 
 function renderDashboard(){
-  const all = sessionSales.filter(inv=>inv.status !== 'ملغية');
+  const period = document.getElementById('dash-period').value;
+  const all = period === 'all'
+    ? sessionSales.filter(inv=>inv.status !== 'ملغية')
+    : sessionSales.filter(inv=>inv.status !== 'ملغية' && new Date(inv.dateTime) >= getReportRange(period).from);
   const total = all.reduce((s,i)=>s+i.total,0);
   document.getElementById('kpi-today').textContent = fmt(total)+' ج.م';
   document.getElementById('kpi-count').textContent = all.length;
   document.getElementById('kpi-avg').textContent = fmt(all.length? total/all.length : 0)+' ج.م';
+
+  // صافي الربح التقريبي: (سعر البيع - سعر التكلفة) لكل صنف مبيع، ناقص المرتجعات. الأصناف من غير تكلفة مسجلة بتتحسب كأن ربحها = سعر البيع كامل (تقدير أعلى من الحقيقي)
+  let profit = 0;
+  all.forEach(inv=>{
+    const sign = inv.paymentMethod === 'مرتجع' ? -1 : 1;
+    inv.items.forEach(it=>{
+      const prod = products.find(p=>p.id===it.id);
+      const cost = prod && prod.cost !== '' && prod.cost !== undefined ? Number(prod.cost) : 0;
+      profit += sign * (it.p - cost) * it.qty;
+    });
+  });
+  document.getElementById('kpi-profit').textContent = fmt(profit)+' ج.م';
 
   // المرتجعات (من نفس سجل المبيعات، طريقة الدفع = مرتجع)
   const returns = all.filter(inv=>inv.paymentMethod==='مرتجع');
@@ -1236,11 +1257,11 @@ function renderDashboard(){
   const dayTotals = days.map(d=>{ const key = d.toDateString(); return all.filter(inv=>new Date(inv.dateTime).toDateString()===key).reduce((s,i)=>s+i.total,0); });
   const dayLabels = days.map(d=>d.toLocaleDateString('ar-EG',{weekday:'short'}));
   if(weekChart) weekChart.destroy();
-  weekChart = new Chart(document.getElementById('chart-week'), { type:'bar', data:{ labels:dayLabels, datasets:[{label:'المبيعات', data:dayTotals, backgroundColor:'#5c6b3f', borderRadius:6}] }, options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} } });
+  try{ weekChart = new Chart(document.getElementById('chart-week'), { type:'bar', data:{ labels:dayLabels, datasets:[{label:'المبيعات', data:dayTotals, backgroundColor:'#5c6b3f', borderRadius:6}] }, options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} } }); }catch(e){ console.error('chart-week', e); }
   const payTotals = {cash:0, card:0, wallet:0};
   all.forEach(inv=>{ payTotals[inv.paymentMethod] = (payTotals[inv.paymentMethod]||0) + inv.total; });
   if(payChart) payChart.destroy();
-  payChart = new Chart(document.getElementById('chart-pay'), { type:'doughnut', data:{ labels:['كاش','فيزا','محفظة'], datasets:[{data:[payTotals.cash, payTotals.card, payTotals.wallet], backgroundColor:['#5c6b3f','#b1502f','#c8992b']}] }, options:{ plugins:{legend:{position:'bottom'}} } });
+  try{ payChart = new Chart(document.getElementById('chart-pay'), { type:'doughnut', data:{ labels:['كاش','فيزا','محفظة'], datasets:[{data:[payTotals.cash, payTotals.card, payTotals.wallet], backgroundColor:['#5c6b3f','#b1502f','#c8992b']}] }, options:{ plugins:{legend:{position:'bottom'}} } }); }catch(e){ console.error('chart-pay', e); }
 
   // شارت المبيعات حسب الفرع (يظهر بس للمدير/الرئيس ولو فيه أكتر من فرع مسجل مبيعات)
   const branchCanvas = document.getElementById('chart-branch');
@@ -1248,7 +1269,7 @@ function renderDashboard(){
     const branchTotals = {};
     all.forEach(inv=>{ const b = inv.branch || 'غير محدد'; branchTotals[b] = (branchTotals[b]||0) + inv.total; });
     if(branchChart) branchChart.destroy();
-    branchChart = new Chart(branchCanvas, { type:'bar', data:{ labels:Object.keys(branchTotals), datasets:[{label:'المبيعات', data:Object.values(branchTotals), backgroundColor:'#c8992b', borderRadius:6}] }, options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true}} } });
+    try{ branchChart = new Chart(branchCanvas, { type:'bar', data:{ labels:Object.keys(branchTotals), datasets:[{label:'المبيعات', data:Object.values(branchTotals), backgroundColor:'#c8992b', borderRadius:6}] }, options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true}} } }); }catch(e){ console.error('chart-branch', e); }
   }
 }
 
@@ -1415,6 +1436,7 @@ function openProductModal(product){
   populateCategorySelect(product ? product.category : '');
   document.getElementById('pm-price').value = product ? product.price : '';
   document.getElementById('pm-stock').value = product && product.stock !== '' && product.stock !== undefined ? product.stock : '';
+  document.getElementById('pm-cost').value = product && product.cost !== '' && product.cost !== undefined ? product.cost : '';
   document.getElementById('pm-barcode').value = product ? product.barcode : '';
   document.getElementById('pm-note').textContent = '';
   populateBranchSelect(document.getElementById('pm-branch'), product ? product.branch : (branches[0]?branches[0].name:''));
@@ -1436,7 +1458,7 @@ document.getElementById('pm-save').addEventListener('click', async ()=>{
   const catSelectVal = document.getElementById('pm-cat-select').value;
   const category = catSelectVal === '__new__' ? document.getElementById('pm-cat-new').value.trim() : catSelectVal;
   const p = { id: editingProductId, name: document.getElementById('pm-name').value.trim(), category: category,
-    price: Number(document.getElementById('pm-price').value)||0, stock: document.getElementById('pm-stock').value === '' ? '' : Number(document.getElementById('pm-stock').value),
+    price: Number(document.getElementById('pm-price').value)||0, cost: document.getElementById('pm-cost').value === '' ? '' : Number(document.getElementById('pm-cost').value), stock: document.getElementById('pm-stock').value === '' ? '' : Number(document.getElementById('pm-stock').value),
     barcode: document.getElementById('pm-barcode').value.trim(), active: true, branch: document.getElementById('pm-branch').value,
     image: document.getElementById('pm-image-preview').style.display==='block' && !pendingImageBase64 ? document.getElementById('pm-image-preview').src : '' };
   if(!p.name || !p.category){ alert('اكتب اسم الصنف والفئة'); return; }
@@ -1731,6 +1753,7 @@ function renderReport(){
   document.getElementById('rep-body').innerHTML = list.length ? list.map(inv=>`<tr><td>${inv.invoiceId}</td><td>${new Date(inv.dateTime).toLocaleString('ar-EG')}</td><td>${inv.cashier}</td><td>${payLabel[inv.paymentMethod]}</td><td>${fmt(inv.total)} ج.م</td></tr>`).join('') : '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:16px;">مفيش فواتير في الفترة دي</td></tr>';
 }
 document.getElementById('report-period').addEventListener('change', renderReport);
+document.getElementById('dash-period').addEventListener('change', renderDashboard);
 document.getElementById('rep-excel-btn').addEventListener('click', ()=>{
   const list = filteredReportSales(); const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة', credit:'آجل'};
   let csv = '\uFEFF' + ['رقم الفاتورة','التاريخ','الكاشير','طريقة الدفع','الإجمالي'].map(csvEscape).join(',') + '\n';
