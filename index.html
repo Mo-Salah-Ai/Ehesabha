@@ -239,6 +239,7 @@
           <div class="totals" id="totals" style="display:none;">
             <div class="row"><span>الإجمالي الفرعي</span><span id="t-sub">0.00</span></div>
             <div class="row" id="t-discount-row" style="display:none;color:var(--danger);"><span>الخصم <button id="t-discount-remove" style="border:none;background:none;color:var(--danger);cursor:pointer;">✕</button></span><span id="t-discount">0.00</span></div>
+            <div class="row" id="t-points-row" style="display:none;color:var(--olive-dark);"><span>خصم النقاط</span><span id="t-points-discount">0.00</span></div>
             <div class="row"><span id="t-tax-label">الضريبة</span><span id="t-tax">0.00</span></div>
             <div class="row grand"><span>الإجمالي</span><span id="t-grand">0.00 ج.م</span></div>
           </div>
@@ -334,7 +335,7 @@
     <!-- CUSTOMERS -->
     <section class="screen" id="screen-customers">
       <div class="panel">
-        <h3>العملاء — الولاء والديون <button class="btn-primary" style="width:auto;padding:8px 16px;font-size:13px;" id="customers-refresh-btn">🔄 تحديث</button></h3>
+        <h3>العملاء — الولاء والديون <button class="btn-primary" style="width:auto;padding:8px 16px;font-size:13px;" id="customers-add-btn">+ إضافة عميل</button> <button class="btn-ghost" style="width:auto;padding:8px 16px;font-size:13px;" id="customers-refresh-btn">🔄 تحديث</button></h3>
         <div class="table-wrap"><table>
           <thead><tr><th>الاسم</th><th>الهاتف</th><th>نقاط الولاء</th><th>الدين الحالي</th><th></th></tr></thead>
           <tbody id="customers-body"><tr><td colspan="5" style="text-align:center;color:var(--muted);">دوس تحديث عشان تشوف العملاء</td></tr></tbody>
@@ -387,6 +388,7 @@
         <div class="field" style="max-width:220px;"><label>فلترة حسب الفرع</label>
           <select id="emp-branch-filter"><option value="all">كل الفروع</option></select>
         </div>
+        <div class="search-row" style="max-width:320px;"><input id="emp-search-box" placeholder="دوّر باسم الموظف أو اليوزر"></div>
         <div class="table-wrap"><table>
           <thead><tr><th></th><th>اسم المستخدم</th><th>الاسم</th><th>الصلاحية</th><th>الفرع</th><th>الحالة</th><th>آخر ظهور</th><th></th></tr></thead>
           <tbody id="employees-body"></tbody>
@@ -425,12 +427,19 @@
         </div>
         <div class="field"><label>نسبة الضريبة (%)</label><input id="st-tax-rate" type="number" step="0.5"></div>
         <div class="field"><label>الرقم الضريبي (مهم للسعودية)</label><input id="st-vat-number" placeholder="300000000000003"></div>
+        <div class="field"><label>واتساب صاحب المحل (لإرسال تقرير آخر اليوم)</label><input id="st-owner-whatsapp" placeholder="201000000000 (كود الدولة من غير + أو صفر)"></div>
         <div class="login-err" id="st-note" style="color:var(--olive-dark);"></div>
         <button class="btn-primary" id="st-save-btn" style="width:auto;padding:11px 22px;">حفظ الإعدادات</button>
         <p style="font-size:12px;color:var(--muted);margin-top:14px;">
           ⚠️ ملحوظة: لما تختار "السعودية"، هيظهر QR Code بسيط على الفاتورة المطبوعة (فوترة مبسطة) — ده مش ربط رسمي كامل مع منظومة "فاتورة".
           <br>ملحوظة: اللوجو دلوقتي بيتحدد من الكود مباشرة بمعرفة المبرمج فقط.
         </p>
+      </div>
+      <div class="panel">
+        <h3>ألوان الواجهة</h3>
+        <div class="field" style="max-width:220px;"><label>اللون الأساسي (البراند)</label><input type="color" id="st-color-olive" style="height:44px;padding:4px;"></div>
+        <div class="field" style="max-width:220px;"><label>لون التمييز (الأزرار)</label><input type="color" id="st-color-brick" style="height:44px;padding:4px;"></div>
+        <button class="btn-ghost" id="st-color-reset" style="width:auto;padding:9px 18px;">إعادة الألوان الافتراضية</button>
       </div>
     </section>
   </div>
@@ -516,6 +525,7 @@ const LOGO_URL = "https://www.appsheet.com:443/fsimage.png?appid=92827f74-7743-4
 // زرار الدعم ده خط اتصال مباشر بالمبرمج (مش دعم عملاء المحل)
 const DEVELOPER_SUPPORT_URL = "https://sites.google.com/view/mo-salah-ai/cv";
 let TAX_RATE_PCT = 14;
+const POINTS_PER_1000_AMOUNT = 1000; // نقطة واحدة لكل 1000 ج.م مصروفة
 
 /* ================= أدوات عامة ================= */
 function fmt(n){ return (n||0).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -581,18 +591,28 @@ function resizeImageBase64(base64, maxDim, quality){
   });
 }
 
+async function apiWithRetry(action, data, retries){
+  retries = retries === undefined ? 3 : retries;
+  let lastErr;
+  for(let attempt=0; attempt<retries; attempt++){
+    try{ return await api(action, data); }
+    catch(e){ lastErr = e; await new Promise(r=>setTimeout(r, 500 + attempt*500)); }
+  }
+  throw lastErr;
+}
+
 async function uploadImageChunked(base64, fileName, mimeType, onProgress){
-  const resized = await resizeImageBase64(base64, 900, 0.72);
+  const resized = await resizeImageBase64(base64, 700, 0.62); // تصغير أقوى عشان نقلل عدد القطع ونزود الموثوقية
   const raw = resized.indexOf(',') !== -1 ? resized.split(',').pop() : resized;
-  const chunkSize = 3000;
+  const chunkSize = 1200; // قطعة أصغر = رابط أقصر = أوثق مع Apps Script
   const chunks = [];
   for(let i=0;i<raw.length;i+=chunkSize){ chunks.push(raw.slice(i, i+chunkSize)); }
   const uploadId = 'up' + Date.now() + Math.random().toString(36).slice(2);
   for(let i=0;i<chunks.length;i++){
-    await api('uploadImageChunk', {uploadId, chunkIndex:i, chunk:chunks[i]});
+    await apiWithRetry('uploadImageChunk', {uploadId, chunkIndex:i, chunk:chunks[i]}, 3);
     if(onProgress) onProgress(i+1, chunks.length);
   }
-  return api('uploadImageFinish', {uploadId, totalChunks:chunks.length, fileName, mimeType:'image/jpeg'});
+  return apiWithRetry('uploadImageFinish', {uploadId, totalChunks:chunks.length, fileName, mimeType:'image/jpeg'}, 3);
 }
 function fileToBase64(file){
   return new Promise((resolve, reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file); });
@@ -641,7 +661,7 @@ let shownNotifIds = ls_get('abdo_shown_notifs', []);
 function updateStatus(){
   const dot = document.getElementById('status-dot');
   const txt = document.getElementById('status-txt');
-  if(navigator.onLine){ dot.classList.remove('off'); txt.textContent='متصل'; syncPending(); }
+  if(navigator.onLine){ dot.classList.remove('off'); txt.textContent='متصل'; syncPending(); syncPendingCustomerUpdates(); }
   else{ dot.classList.add('off'); txt.textContent='أوف لاين'; }
 }
 window.addEventListener('online', updateStatus);
@@ -724,6 +744,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(btn.dataset.tab==='dash') renderDashboard();
     if(btn.dataset.tab==='sales') renderSales();
     if(btn.dataset.tab==='returns'){ document.getElementById('ret-result').style.display='none'; document.getElementById('ret-invoice-id').value=''; document.getElementById('ret-note').textContent=''; }
+    if(btn.dataset.tab==='customers') renderCustomers();
     if(btn.dataset.tab==='reports') renderReport();
     if(btn.dataset.tab==='admin') renderAdminProducts();
     if(btn.dataset.tab==='employees') renderEmployeesTab();
@@ -825,6 +846,8 @@ function changeQty(id, delta){
   if(cart[id].qty<=0) delete cart[id];
   renderCart();
 }
+let lookedUpCustomer = null; // {name, phone, points, debt}
+
 function computeCartTotals(){
   const entries = Object.values(cart);
   const sub = entries.reduce((s,it)=>s+it.price*it.qty,0);
@@ -833,10 +856,15 @@ function computeCartTotals(){
     discountAmount = cartDiscount.type === 'percent' ? sub * (cartDiscount.value/100) : cartDiscount.value;
     discountAmount = Math.max(0, Math.min(discountAmount, sub));
   }
-  const taxable = sub - discountAmount;
+  let pointsDiscount = 0;
+  const pointsChk = document.getElementById('use-points-chk');
+  if(lookedUpCustomer && pointsChk && pointsChk.checked){
+    pointsDiscount = Math.max(0, Math.min(lookedUpCustomer.points, sub - discountAmount));
+  }
+  const taxable = sub - discountAmount - pointsDiscount;
   const tax = taxable * (TAX_RATE_PCT/100);
   const grand = taxable + tax;
-  return { sub, discountAmount, taxable, tax, grand };
+  return { sub, discountAmount, pointsDiscount, taxable, tax, grand };
 }
 
 function renderCart(){
@@ -863,6 +891,9 @@ function renderCart(){
   const discRow = document.getElementById('t-discount-row');
   if(cartDiscount && t.discountAmount > 0){ discRow.style.display='flex'; document.getElementById('t-discount').textContent = '-'+fmt(t.discountAmount); }
   else{ discRow.style.display='none'; }
+  const pointsRow2 = document.getElementById('t-points-row');
+  if(t.pointsDiscount > 0){ pointsRow2.style.display='flex'; document.getElementById('t-points-discount').textContent = '-'+fmt(t.pointsDiscount); }
+  else{ pointsRow2.style.display='none'; }
   totalsEl.style.display='block'; payEl.style.display='flex'; checkoutBtn.disabled=false; clearBtn.style.display='block';
   holdBtn.style.display='block'; discountBtn.style.display='block';
   toggleCashCalc();
@@ -877,8 +908,42 @@ document.getElementById('discount-btn').addEventListener('click', ()=>{
   renderCart();
 });
 document.getElementById('t-discount-remove').addEventListener('click', ()=>{ cartDiscount = null; renderCart(); });
-document.getElementById('clear-btn').addEventListener('click', ()=>{ cart={}; renderCart(); });
+document.getElementById('clear-btn').addEventListener('click', ()=>{ cart={}; resetCustomerLookup(); renderCart(); });
 document.querySelectorAll('#pay-methods button').forEach(b=>{ b.addEventListener('click', ()=>{ document.querySelectorAll('#pay-methods button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); activePay = b.dataset.pay; toggleCashCalc(); }); });
+
+/* ================= بحث العميل ونقاط الولاء عند الكاشير ================= */
+function resetCustomerLookup(){
+  lookedUpCustomer = null;
+  document.getElementById('cart-customer-phone').value = '';
+  document.getElementById('cart-customer-info').textContent = '';
+  document.getElementById('points-row').style.display = 'none';
+  document.getElementById('use-points-chk').checked = false;
+}
+document.getElementById('cart-customer-search').addEventListener('click', async ()=>{
+  const phone = document.getElementById('cart-customer-phone').value.trim();
+  const info = document.getElementById('cart-customer-info');
+  if(!phone){ info.textContent = ''; lookedUpCustomer = null; document.getElementById('points-row').style.display='none'; return; }
+  if(!navigator.onLine){ info.textContent = 'محتاج نت عشان تدوّر على العميل (لسه تقدر تكمل بيع آجل وهيتزامن بعدين)'; return; }
+  info.textContent = 'جاري البحث...';
+  try{
+    const r = await api('getCustomers', {});
+    const found = r.customers.find(c=>String(c.phone)===phone);
+    if(found){
+      lookedUpCustomer = found;
+      info.textContent = 'العميل: ' + found.name + ' — نقاط: ' + found.points + (found.debt>0 ? ' — دين حالي: '+fmt(found.debt)+' ج.م' : '');
+      if(found.points > 0){
+        document.getElementById('points-row').style.display = 'block';
+        document.getElementById('use-points-label').textContent = 'استخدام النقاط (' + found.points + ' نقطة = خصم ' + found.points + ' ج.م)';
+      } else { document.getElementById('points-row').style.display='none'; }
+    } else {
+      lookedUpCustomer = null;
+      info.textContent = 'عميل جديد، هيتسجل تلقائي أول ما تتم عملية بيع بيها';
+      document.getElementById('points-row').style.display = 'none';
+    }
+    renderCart();
+  }catch(e){ info.textContent = 'حصل خطأ: ' + e.message; }
+});
+document.getElementById('use-points-chk').addEventListener('change', renderCart);
 
 function toggleCashCalc(){
   const row = document.getElementById('cash-calc-row');
@@ -948,18 +1013,31 @@ document.getElementById('checkout-btn').addEventListener('click', async ()=>{
   if(entries.length===0) return;
   const t = computeCartTotals();
   const invoice = { invoiceId: uid(), dateTime: new Date().toISOString(), cashier: currentUser.username, branch: currentUser.branch || '',
-    items: entries.map(e=>({id:e.id, n:e.name, qty:e.qty, p:e.price})), subtotal: t.sub, tax: t.tax, total: t.grand, discount: t.discountAmount, paymentMethod: activePay, synced: false };
+    items: entries.map(e=>({id:e.id, n:e.name, qty:e.qty, p:e.price})), subtotal: t.sub, tax: t.tax, total: t.grand, discount: t.discountAmount,
+    customerPhone: lookedUpCustomer ? lookedUpCustomer.phone : '', paymentMethod: activePay, synced: false };
   sessionSales.unshift(invoice); ls_set('abdo_sales_log', sessionSales); queueSale(invoice); lastInvoice = invoice;
   entries.forEach(e=>{ const p = products.find(x=>x.id===e.id); if(p && p.stock !== '' && p.stock !== undefined && p.stock !== null){ p.stock = Math.max(0, Number(p.stock) - e.qty); } });
   ls_set('abdo_products', products);
-  const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة'}[activePay];
+
+  // لو فيه عميل متعرّف عليه، نحدّث نقاطه ودينه (نقطة واحدة لكل 1000 ج.م مصروفة، وخصم أي نقط اتستخدمت، وتسجيل دين لو الدفع "آجل")
+  if(lookedUpCustomer){
+    const pointsEarned = Math.floor(t.grand / POINTS_PER_1000_AMOUNT);
+    const redeemPoints = t.pointsDiscount > 0 ? t.pointsDiscount : 0;
+    const addDebt = activePay === 'credit' ? t.grand : 0;
+    if(pointsEarned > 0 || redeemPoints > 0 || addDebt > 0){
+      queueCustomerUpdate({ phone: lookedUpCustomer.phone, name: lookedUpCustomer.name, addPoints: pointsEarned, redeemPoints, addDebt });
+    }
+  }
+
+  const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة', credit:'آجل'}[activePay];
   document.getElementById('r-num').textContent = 'فاتورة رقم '+invoice.invoiceId;
   document.getElementById('r-amt').textContent = fmt(t.grand)+' ج.م';
   document.getElementById('r-pay').textContent = 'الدفع: '+payLabel;
   document.getElementById('receipt-modal').classList.add('show');
-  cart = {}; cartDiscount = null; renderCart(); renderItems();
+  cart = {}; cartDiscount = null; resetCustomerLookup(); renderCart(); renderItems();
   document.getElementById('cash-given').value = '';
   syncPending();
+  syncPendingCustomerUpdates();
 });
 document.getElementById('r-close').addEventListener('click', ()=>{ document.getElementById('receipt-modal').classList.remove('show'); });
 document.getElementById('r-print').addEventListener('click', ()=>{ if(lastInvoice) printReceipt(lastInvoice); });
@@ -996,6 +1074,20 @@ async function syncPending(){
   }catch(e){}
 }
 setInterval(syncPending, 15000);
+
+/* ================= مزامنة تحديثات العملاء (نقاط/دين) المعلقة ================= */
+async function syncPendingCustomerUpdates(){
+  if(!navigator.onLine) return;
+  const q = ls_get('abdo_pending_customer_updates', []);
+  if(q.length===0) return;
+  const remaining = [];
+  for(const update of q){
+    try{ await api('applySaleToCustomer', update); }
+    catch(e){ remaining.push(update); }
+  }
+  ls_set('abdo_pending_customer_updates', remaining);
+}
+setInterval(syncPendingCustomerUpdates, 15000);
 
 /* ================= الحضور (Heartbeat) ================= */
 function startHeartbeat(){
@@ -1036,7 +1128,7 @@ function buildZatcaQR(sellerName, vatNumber, timestampISO, total, vatAmount){
 }
 function printReceipt(invoice){
   const w = window.open('', '_blank', 'width=380,height=650');
-  const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة'}[invoice.paymentMethod];
+  const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة', credit:'آجل'}[invoice.paymentMethod];
   const isKsa = appSettings.country === 'السعودية';
   const qrData = isKsa ? buildZatcaQR(appSettings.storeName, appSettings.vatNumber, invoice.dateTime, invoice.total, invoice.tax) : '';
   w.document.write(`<html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>فاتورة ${invoice.invoiceId}</title>
@@ -1071,6 +1163,22 @@ function renderDashboard(){
   document.getElementById('kpi-today').textContent = fmt(total)+' ج.م';
   document.getElementById('kpi-count').textContent = all.length;
   document.getElementById('kpi-avg').textContent = fmt(all.length? total/all.length : 0)+' ج.م';
+
+  // تحليل ذكي مبسط: ساعة الذروة اليوم + تقدير تقريبي لآخر اليوم بناءً على وتيرة المبيعات
+  const todayKey = new Date().toDateString();
+  const todaySales = all.filter(inv=>new Date(inv.dateTime).toDateString()===todayKey);
+  const hourCounts = {};
+  todaySales.forEach(inv=>{ const h = new Date(inv.dateTime).getHours(); hourCounts[h] = (hourCounts[h]||0) + inv.total; });
+  const peakHourEntry = Object.entries(hourCounts).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('ai-peak-hour').textContent = peakHourEntry ? (peakHourEntry[0]+':00 - '+(Number(peakHourEntry[0])+1)+':00') : '—';
+
+  const todayTotal = todaySales.reduce((s,i)=>s+i.total,0);
+  const now = new Date();
+  const hoursElapsed = Math.max(1, now.getHours() + now.getMinutes()/60 - 8); // بافتراض بداية يوم العمل الساعة 8 صباحًا كتقدير عام
+  const businessDayHours = 12; // بافتراض يوم عمل ١٢ ساعة كتقدير عام (ممكن تختلف حسب نشاطك)
+  const predicted = hoursElapsed > 0 ? (todayTotal / hoursElapsed) * businessDayHours : todayTotal;
+  document.getElementById('ai-predicted').textContent = todaySales.length ? fmt(Math.max(predicted, todayTotal)) + ' ج.م' : '—';
+
   const agg = {};
   all.forEach(inv=>inv.items.forEach(it=>{ if(!agg[it.n]) agg[it.n] = {qty:0,total:0}; agg[it.n].qty += it.qty; agg[it.n].total += it.qty*it.p; }));
   const rows = Object.entries(agg).sort((a,b)=>b[1].qty-a[1].qty);
@@ -1109,7 +1217,7 @@ function renderSales(){
   const from = getSalesFilterRange(filter);
   const list = from ? sessionSales.filter(inv => new Date(inv.dateTime) >= from) : sessionSales;
   if(list.length===0){ tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px;">مفيش فواتير في الفترة دي</td></tr>'; return; }
-  const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة', 'مرتجع':'مرتجع'};
+  const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة', credit:'آجل', 'مرتجع':'مرتجع'};
   tbody.innerHTML = list.map((inv)=>`
     <tr style="${inv.status==='ملغية'?'opacity:0.55;text-decoration:line-through;':''}"><td>${inv.invoiceId}</td><td>${new Date(inv.dateTime).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})}</td><td>${inv.cashier}</td>
       <td><span class="badge ${inv.paymentMethod==='cash'?'cash':inv.paymentMethod==='مرتجع'?'low':'card'}">${payLabel[inv.paymentMethod]||inv.paymentMethod}</span></td><td>${fmt(inv.total)} ج.م</td>
@@ -1194,6 +1302,39 @@ document.getElementById('ret-confirm-btn').addEventListener('click', async ()=>{
     returnSaleData = null;
   }catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
 });
+
+/* ================= العملاء (الولاء + البيع الآجل) ================= */
+async function renderCustomers(){
+  const tbody = document.getElementById('customers-body');
+  if(!navigator.onLine){ showToast('⚠️ محتاج نت عشان تشوف العملاء'); return; }
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">جاري التحميل...</td></tr>';
+  try{
+    const r = await api('getCustomers', {});
+    if(!r.customers.length){ tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">مفيش عملاء مسجلين لسه</td></tr>'; return; }
+    tbody.innerHTML = r.customers.map(c=>`
+      <tr><td>${c.name}</td><td>${c.phone}</td><td><span class="badge cash">${c.points}</span></td>
+        <td>${c.debt>0?`<span class="badge low">${fmt(c.debt)} ج.م</span>`:'—'}</td>
+        <td>${c.debt>0?`<button class="small-btn" data-phone="${c.phone}" data-act="settle">💰 تسديد</button>`:''}</td></tr>`).join('');
+    tbody.querySelectorAll('[data-act="settle"]').forEach(b=>b.addEventListener('click', async ()=>{
+      const amountStr = prompt('اكتب المبلغ اللي هيتسدد:');
+      const amount = Number(amountStr);
+      if(!amountStr || isNaN(amount) || amount<=0) return;
+      try{ await api('settleDebt', {phone:b.dataset.phone, amount}); showToast('✅ تم التسديد'); renderCustomers(); }
+      catch(e){ showToast('⚠️ '+e.message); }
+    }));
+  }catch(e){ tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--danger);">حصل خطأ: '+e.message+'</td></tr>'; }
+}
+document.getElementById('customers-refresh-btn').addEventListener('click', renderCustomers);
+document.getElementById('customers-add-btn').addEventListener('click', async ()=>{
+  const phone = prompt('رقم هاتف العميل:');
+  if(!phone) return;
+  const name = prompt('اسم العميل (اختياري):') || phone;
+  if(!navigator.onLine){ showToast('⚠️ محتاج نت'); return; }
+  try{ await api('saveCustomer', {phone, name}); showToast('✅ اتضاف العميل'); renderCustomers(); }
+  catch(e){ showToast('⚠️ '+e.message); }
+});
+
+function queueCustomerUpdate(payload){ const q = ls_get('abdo_pending_customer_updates', []); q.push(payload); ls_set('abdo_pending_customer_updates', q); }
 
 /* ================= إدارة المنتجات ================= */
 let editingProductId = null, pendingImageBase64 = null, pendingImageMeta = null;
@@ -1318,7 +1459,9 @@ async function renderEmployeesTab(){
 
     function paintEmployees(){
       const filterVal = branchFilterSel.value;
-      const filteredUsers = filterVal==='all' ? usersR.users : usersR.users.filter(u=>u.branch===filterVal);
+      let filteredUsers = filterVal==='all' ? usersR.users : usersR.users.filter(u=>u.branch===filterVal);
+      const searchVal = (document.getElementById('emp-search-box').value || '').trim().toLowerCase();
+      if(searchVal){ filteredUsers = filteredUsers.filter(u => u.name.toLowerCase().includes(searchVal) || u.username.toLowerCase().includes(searchVal)); }
       const tbody = document.getElementById('employees-body');
       if(filteredUsers.length===0){ tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);">مفيش موظفين في الفرع ده</td></tr>'; return; }
       tbody.innerHTML = filteredUsers.map(u=>{
@@ -1338,6 +1481,7 @@ async function renderEmployeesTab(){
     }
     paintEmployees();
     branchFilterSel.onchange = paintEmployees;
+    document.getElementById('emp-search-box').oninput = paintEmployees;
 
     const notifTo = document.getElementById('notif-to');
     notifTo.innerHTML = '<option value="الكل">كل الموظفين</option>' + usersR.users.map(u=>`<option value="${u.username}">${u.name} (${ROLE_LABEL[u.role]})</option>`).join('');
@@ -1458,20 +1602,64 @@ function loadSettingsForm(){
   document.getElementById('st-country').value = appSettings.country || 'مصر';
   document.getElementById('st-tax-rate').value = appSettings.taxRate !== undefined ? appSettings.taxRate : 14;
   document.getElementById('st-vat-number').value = appSettings.vatNumber || '';
+  document.getElementById('st-owner-whatsapp').value = appSettings.ownerWhatsapp || '';
+  const savedColors = ls_get('abdo_custom_colors', {});
+  document.getElementById('st-color-olive').value = savedColors.olive || '#5c6b3f';
+  document.getElementById('st-color-brick').value = savedColors.brick || '#b1502f';
 }
 document.getElementById('st-country').addEventListener('change', (e)=>{ document.getElementById('st-tax-rate').value = e.target.value === 'السعودية' ? 15 : 14; });
 document.getElementById('st-save-btn').addEventListener('click', async ()=>{
   const note = document.getElementById('st-note');
   if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت عشان تحفظ الإعدادات'; return; }
   const payload = { storeName: document.getElementById('st-store-name').value.trim() || 'احسبها', country: document.getElementById('st-country').value,
-    taxRate: Number(document.getElementById('st-tax-rate').value) || 14, vatNumber: document.getElementById('st-vat-number').value.trim() };
+    taxRate: Number(document.getElementById('st-tax-rate').value) || 14, vatNumber: document.getElementById('st-vat-number').value.trim(),
+    ownerWhatsapp: document.getElementById('st-owner-whatsapp').value.trim() };
   try{ note.textContent = 'جاري الحفظ...'; await api('saveSettings', payload); appSettings = payload; ls_set('abdo_settings', appSettings); applyBranding(); note.textContent = 'تم الحفظ بنجاح.'; }
   catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
 });
 document.querySelector('[data-tab="settings"]').addEventListener('click', loadSettingsForm);
 
+/* ================= تخصيص الألوان (محلي لكل جهاز) ================= */
+function applyCustomColors(){
+  const c = ls_get('abdo_custom_colors', {});
+  if(c.olive) document.documentElement.style.setProperty('--olive', c.olive);
+  if(c.brick) document.documentElement.style.setProperty('--brick', c.brick);
+}
+applyCustomColors();
+document.getElementById('st-color-olive').addEventListener('input', (e)=>{
+  const c = ls_get('abdo_custom_colors', {}); c.olive = e.target.value; ls_set('abdo_custom_colors', c); applyCustomColors();
+});
+document.getElementById('st-color-brick').addEventListener('input', (e)=>{
+  const c = ls_get('abdo_custom_colors', {}); c.brick = e.target.value; ls_set('abdo_custom_colors', c); applyCustomColors();
+});
+document.getElementById('st-color-reset').addEventListener('click', ()=>{
+  ls_set('abdo_custom_colors', {});
+  document.documentElement.style.removeProperty('--olive');
+  document.documentElement.style.removeProperty('--brick');
+  loadSettingsForm();
+});
+
 /* ================= الدعم الفني (خط اتصال بالمبرمج) ================= */
 document.getElementById('support-fab').addEventListener('click', ()=>{ window.open(DEVELOPER_SUPPORT_URL, '_blank'); });
+
+/* ================= تقرير واتساب نهاية اليوم لصاحب المحل ================= */
+document.getElementById('whatsapp-eod-btn').addEventListener('click', ()=>{
+  if(!appSettings.ownerWhatsapp){ showToast('⚠️ حط رقم واتساب صاحب المحل الأول من شاشة الإعدادات'); return; }
+  const todayKey = new Date().toDateString();
+  const todaySales = sessionSales.filter(inv=>inv.status!=='ملغية' && new Date(inv.dateTime).toDateString()===todayKey);
+  const total = todaySales.reduce((s,i)=>s+i.total,0);
+  const count = todaySales.length;
+  const payTotals = {};
+  todaySales.forEach(inv=>{ payTotals[inv.paymentMethod] = (payTotals[inv.paymentMethod]||0) + inv.total; });
+  const payLabelMap = {cash:'كاش', card:'فيزا', wallet:'محفظة', credit:'آجل'};
+  const payLines = Object.entries(payTotals).map(([k,v])=>`- ${payLabelMap[k]||k}: ${fmt(v)} ج.م`).join('\n');
+  const msg = `📊 ملخص مبيعات ${appSettings.storeName} - ${new Date().toLocaleDateString('ar-EG')}\n\n` +
+    `عدد الفواتير: ${count}\n` +
+    `إجمالي المبيعات: ${fmt(total)} ج.م\n\n` +
+    `تفصيل طرق الدفع:\n${payLines || '—'}\n\n` +
+    `تم الإرسال تلقائيًا من تطبيق ${appSettings.storeName}`;
+  window.open('https://wa.me/' + appSettings.ownerWhatsapp + '?text=' + encodeURIComponent(msg), '_blank');
+});
 
 /* ================= التقارير ================= */
 function getReportRange(period){
@@ -1488,19 +1676,19 @@ function renderReport(){
   document.getElementById('rep-total').textContent = fmt(total)+' ج.م';
   document.getElementById('rep-count').textContent = list.length;
   document.getElementById('rep-avg').textContent = fmt(list.length? total/list.length : 0)+' ج.م';
-  const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة'};
+  const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة', credit:'آجل'};
   document.getElementById('rep-body').innerHTML = list.length ? list.map(inv=>`<tr><td>${inv.invoiceId}</td><td>${new Date(inv.dateTime).toLocaleString('ar-EG')}</td><td>${inv.cashier}</td><td>${payLabel[inv.paymentMethod]}</td><td>${fmt(inv.total)} ج.م</td></tr>`).join('') : '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:16px;">مفيش فواتير في الفترة دي</td></tr>';
 }
 document.getElementById('report-period').addEventListener('change', renderReport);
 document.getElementById('rep-excel-btn').addEventListener('click', ()=>{
-  const list = filteredReportSales(); const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة'};
+  const list = filteredReportSales(); const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة', credit:'آجل'};
   let csv = '\uFEFF' + ['رقم الفاتورة','التاريخ','الكاشير','طريقة الدفع','الإجمالي'].map(csvEscape).join(',') + '\n';
   list.forEach(inv=>{ csv += [inv.invoiceId, new Date(inv.dateTime).toLocaleString('ar-EG'), inv.cashier, payLabel[inv.paymentMethod], inv.total.toFixed(2)].map(csvEscape).join(',') + '\n'; });
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'تقرير-مبيعات-' + Date.now() + '.csv'; a.click();
 });
 document.getElementById('rep-pdf-btn').addEventListener('click', ()=>{
-  const list = filteredReportSales(); const total = list.reduce((s,i)=>s+i.total,0); const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة'};
+  const list = filteredReportSales(); const total = list.reduce((s,i)=>s+i.total,0); const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة', credit:'آجل'};
   const period = document.getElementById('report-period').value; const periodLabel = {day:'اليوم', week:'آخر 7 أيام', month:'الشهر الحالي'}[period];
   const w = window.open('', '_blank');
   w.document.write(`<html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>تقرير مبيعات</title>
