@@ -249,8 +249,8 @@
           <div class="field" style="margin-bottom:10px;position:relative;">
             <label>العميل (بحث بالاسم أو الرقم — لازم لو "آجل")</label>
             <div class="barcode-row">
-              <input id="cart-customer-search-input" placeholder="اكتب اسم العميل أو رقم التليفون" autocomplete="off">
-              <button class="icon-btn" id="cart-customer-search-btn">🔍</button>
+              <input id="cart-customer-search-input" placeholder="اكتب اسم العميل أو رقم التليفون" autocomplete="off" style="direction:ltr;text-align:right;">
+              <button class="icon-btn" id="cart-customer-search-btn" type="button">🔍</button>
             </div>
             <div id="customer-search-results" class="customer-results" style="display:none;"></div>
             <div id="cart-customer-info" style="font-size:12px;color:var(--muted);margin-top:5px;"></div>
@@ -728,46 +728,24 @@ let shownNotifIds = ls_get('abdo_shown_notifs', []);
 let lookedUpCustomer = null;
 let customersCache = [];
 
-/* ================= تحميل العملاء مسبقاً ================= */
 async function loadCustomersCache(){
-  if(!navigator.onLine) return;
+  if(!navigator.onLine){ console.log('[Customers] offline'); return; }
   try{
     const r = await api('getCustomers', {});
-    customersCache = r.customers || [];
-  }catch(e){ console.error('loadCustomersCache', e); }
-}
-
-/* ================= بحث محسّن عن العميل ================= */
-async function searchCustomer(query){
-  const resultsBox = document.getElementById('customer-search-results');
-  if(!query || query.length < 1){
-    // Show top recent customers from cache when field is focused/empty
-    if(customersCache.length > 0){
-      showCustomerResults(customersCache.slice(0, 15), '');
-    } else {
-      resultsBox.style.display='none';
-    }
-    return;
-  }
-  let matches = [];
-  const q = query.trim().toLowerCase();
-  if(customersCache.length > 0){
-    matches = customersCache.filter(c => (c.name && c.name.toLowerCase().includes(q)) || (c.phone && c.phone.includes(q)));
-  }
-  if(matches.length > 0){
-    showCustomerResults(matches, query);
-    return;
-  }
-  if(!navigator.onLine){ 
-    showCustomerResults([], query);
-    return;
-  }
-  try{
-    const r = await api('getCustomers', {});
-    customersCache = r.customers || [];
-    matches = customersCache.filter(c => (c.name && c.name.toLowerCase().includes(q)) || (c.phone && c.phone.includes(q)));
-    showCustomerResults(matches, query);
-  }catch(e){ resultsBox.style.display='none'; }
+    customersCache = (r.customers || []).map(function(c){
+      return {
+        name: String(c.name || ''),
+        phone: String(c.phone || ''),
+        cardNumber: String(c.cardNumber || ''),
+        points: Number(c.points) || 0,
+        debt: Number(c.debt) || 0,
+        visits: Number(c.visits) || 0,
+        totalSpent: Number(c.totalSpent) || 0,
+        registerDate: c.registerDate || ''
+      };
+    });
+    console.log('[Customers] loaded:', customersCache.length);
+  }catch(err){ console.error('[Customers] load error:', err); }
 }
 
 /* ================= حالة الاتصال ================= */
@@ -823,7 +801,7 @@ function updateAvatar(){
   else{ av.textContent = currentUser ? currentUser.name.charAt(0) : '؟'; }
 }
 
-function enterApp(){
+async function enterApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('who-name').textContent = currentUser.name + ' ('+ROLE_LABEL[currentUser.role]+')';
@@ -836,7 +814,7 @@ function enterApp(){
   updateStatus();
   startHeartbeat();
   startNotifPolling();
-  loadCustomersCache(); // preload customers for POS search
+  await loadCustomersCache(); // preload customers for POS
   // Show branch filter for manager+
   if(isManagerOrAbove()){
     document.getElementById('sales-branch-filter-wrap').style.display = 'block';
@@ -1052,25 +1030,60 @@ function resetCustomerLookup(){
   document.getElementById('customer-search-results').style.display = 'none';
 }
 
-function showCustomerResults(matches, query){
-  const resultsBox = document.getElementById('customer-search-results');
-  if(matches.length === 0){
-    resultsBox.innerHTML = '<div class="res-new" id="res-new-customer">+ تسجيل عميل جديد' + (query ? ' باسم/رقم: '+query : '') + '</div>';
-    document.getElementById('res-new-customer').addEventListener('click', ()=>{
-      document.getElementById('cr-phone').value = query && query.match(/\d+/) ? query.match(/\d+/)[0] : '';
-      document.getElementById('cr-name').value = query && query.match(/\d+/) ? '' : (query || '');
-      document.getElementById('customer-register-modal').classList.add('show');
-      resultsBox.style.display='none';
+async function searchCustomer(query){
+  var resultsBox = document.getElementById('customer-search-results');
+  var q = String(query || '').trim();
+  if(customersCache.length === 0 && navigator.onLine){
+    try{ await loadCustomersCache(); }catch(e){}
+  }
+  var matches = [];
+  if(q.length > 0){
+    var ql = q.toLowerCase();
+    matches = customersCache.filter(function(c){
+      try{
+        var nameMatch = c.name && c.name.toLowerCase().indexOf(ql) !== -1;
+        var phoneMatch = c.phone && c.phone.indexOf(q) !== -1;
+        return nameMatch || phoneMatch;
+      }catch(e){ return false; }
     });
   } else {
-    resultsBox.innerHTML = matches.map(c=>{
-      const regDate = c.registerDate ? new Date(c.registerDate).toLocaleDateString('ar-EG') : '—';
-      return '<div class="res-item" data-phone="'+c.phone+'"><div class="res-name">'+c.name+'</div><div class="res-meta">📱 '+c.phone+' | 🎁 '+(c.points||0)+' نقطة | 💰 '+fmt(c.debt||0)+' ج.م دين | 📅 '+regDate+'</div></div>';
+    matches = customersCache.slice(0, 20);
+  }
+  showCustomerResults(matches, q);
+}
+
+function showCustomerResults(matches, rawQuery){
+  var resultsBox = document.getElementById('customer-search-results');
+  var query = String(rawQuery || '');
+
+  if(matches.length === 0){
+    resultsBox.innerHTML = '<div class="res-new" id="res-new-customer" style="cursor:pointer;padding:10px;text-align:center;font-weight:700;color:var(--brick);">+ تسجيل عميل جديد' + (query ? ' باسم/رقم: '+query : '') + '</div>';
+    var btn = document.getElementById('res-new-customer');
+    if(btn){
+      btn.addEventListener('click', function(){
+        var numMatch = query.match(/\d+/);
+        document.getElementById('cr-phone').value = numMatch ? numMatch[0] : '';
+        document.getElementById('cr-name').value = numMatch ? '' : query;
+        document.getElementById('customer-register-modal').classList.add('show');
+        resultsBox.style.display='none';
+      });
+    }
+  } else {
+    resultsBox.innerHTML = matches.map(function(c){
+      var regDate = '—';
+      if(c.registerDate){
+        try{ regDate = new Date(c.registerDate).toLocaleDateString('ar-EG'); }catch(e){ regDate = String(c.registerDate).split('T')[0] || '—'; }
+      }
+      return '<div class="res-item" data-phone="'+c.phone+'" style="cursor:pointer;padding:10px 12px;border-bottom:1px solid var(--line);">' +
+        '<div class="res-name" style="font-weight:700;">'+c.name+'</div>' +
+        '<div class="res-meta" style="font-size:11.5px;color:var(--muted);">📱 '+c.phone+' | 🎁 '+c.points+' نقطة | 💰 '+fmt(c.debt)+' ج.م دين | 📅 '+regDate+'</div>' +
+        '</div>';
     }).join('');
-    resultsBox.querySelectorAll('.res-item').forEach(item=>{
-      item.addEventListener('click', ()=>{
-        const phone = item.dataset.phone;
-        const found = customersCache.find(c=>c.phone===phone);
+
+    resultsBox.querySelectorAll('.res-item').forEach(function(item){
+      item.addEventListener('click', function(){
+        var phone = item.getAttribute('data-phone');
+        var found = customersCache.find(function(c){ return c.phone === phone; });
         if(found) selectCustomer(found);
         resultsBox.style.display='none';
       });
@@ -1081,42 +1094,49 @@ function showCustomerResults(matches, query){
 
 function selectCustomer(customer){
   lookedUpCustomer = customer;
-  document.getElementById('cart-customer-search-input').value = customer.name + ' (' + customer.phone + ')';
-  document.getElementById('cart-customer-info').textContent = 'العميل: ' + customer.name + ' — نقاط: ' + customer.points + (customer.debt>0 ? ' — دين حالي: '+fmt(customer.debt)+' ج.م' : '');
+  var phoneStr = String(customer.phone || '');
+  var nameStr = String(customer.name || 'عميل');
+  document.getElementById('cart-customer-search-input').value = nameStr + ' (' + phoneStr + ')';
+  var info = 'العميل: ' + nameStr + ' — نقاط: ' + (customer.points || 0);
+  if((customer.debt || 0) > 0) info += ' — دين حالي: '+fmt(customer.debt)+' ج.م';
+  document.getElementById('cart-customer-info').textContent = info;
   document.getElementById('loyalty-display').style.display = 'block';
-  document.getElementById('loyalty-points').textContent = customer.points;
-  const settings = appSettings;
-  const pointsPerDiscount = Number(settings.pointsPerDiscount) || 10000;
-  const discountPerBlock = 10;
-  const maxDiscount = Number(settings.maxDiscountPercent) || 50;
-  const availableBlocks = Math.floor(customer.points / pointsPerDiscount);
-  const possibleDiscount = Math.min(availableBlocks * discountPerBlock, maxDiscount);
+  document.getElementById('loyalty-points').textContent = customer.points || 0;
+  var settings = appSettings;
+  var pointsPerDiscount = Number(settings.pointsPerDiscount) || 10000;
+  var discountPerBlock = 10;
+  var maxDiscount = Number(settings.maxDiscountPercent) || 50;
+  var availableBlocks = Math.floor((customer.points || 0) / pointsPerDiscount);
+  var possibleDiscount = Math.min(availableBlocks * discountPerBlock, maxDiscount);
   document.getElementById('loyalty-discount-info').textContent = availableBlocks > 0 ? 'يقدر يستبدل '+ (availableBlocks * pointsPerDiscount) +' نقطة بخصم '+possibleDiscount+'%' : 'لسه مفيش نقاط كافية للاستبدال';
-  if(customer.points > 0 && availableBlocks > 0){
+  if((customer.points || 0) > 0 && availableBlocks > 0){
     document.getElementById('points-row').style.display = 'block';
     document.getElementById('use-points-label').textContent = 'استخدام النقاط (' + (availableBlocks * pointsPerDiscount) + ' نقطة = خصم ' + possibleDiscount + '%)';
   } else { document.getElementById('points-row').style.display='none'; }
   renderCart();
 }
 
-let customerSearchTimer = null;
-document.getElementById('cart-customer-search-input').addEventListener('input', (e)=>{
+var customerSearchTimer = null;
+document.getElementById('cart-customer-search-input').addEventListener('input', function(e){
   clearTimeout(customerSearchTimer);
-  const val = e.target.value.trim();
-  if(!val){ document.getElementById('customer-search-results').style.display='none'; return; }
-  customerSearchTimer = setTimeout(()=>searchCustomer(val), 400);
+  var val = e.target.value.trim();
+  customerSearchTimer = setTimeout(function(){ searchCustomer(val); }, 300);
 });
-document.getElementById('cart-customer-search-input').addEventListener('focus', (e)=>{
-  if(e.target.value.trim()) searchCustomer(e.target.value.trim());
+document.getElementById('cart-customer-search-input').addEventListener('focus', function(e){
+  searchCustomer(e.target.value.trim());
+});
+document.getElementById('cart-customer-search-btn').addEventListener('click', function(e){
+  e.preventDefault();
+  searchCustomer(document.getElementById('cart-customer-search-input').value.trim());
 });
 // Hide results when clicking outside
-document.addEventListener('click', (e)=>{
-  if(!e.target.closest('.field')) document.getElementById('customer-search-results').style.display='none';
+document.addEventListener('click', function(e){
+  var field = document.getElementById('cart-customer-search-input').closest('.field');
+  if(field && !field.contains(e.target)){
+    document.getElementById('customer-search-results').style.display='none';
+  }
 });
 
-document.getElementById('use-points-chk').addEventListener('change', renderCart);
-
-/* ================= تسجيل عميل جديد من الكاشير ================= */
 document.getElementById('cr-cancel').addEventListener('click', ()=>{
   document.getElementById('customer-register-modal').classList.remove('show');
 });
@@ -1228,10 +1248,8 @@ document.getElementById('checkout-btn').addEventListener('click', async ()=>{
   document.getElementById('cash-given').value = '';
   syncPending();
   syncPendingCustomerUpdates();
-  // Refresh customers cache after checkout to reflect new points/spending
-  if(navigator.onLine){
-    setTimeout(()=>{ loadCustomersCache(); }, 2000);
-  }
+  // Refresh customers cache after checkout
+  if(navigator.onLine){ setTimeout(function(){ loadCustomersCache(); }, 2000); }
 });
 document.getElementById('r-close').addEventListener('click', ()=>{ document.getElementById('receipt-modal').classList.remove('show'); });
 document.getElementById('r-print').addEventListener('click', ()=>{ if(lastInvoice) printReceipt(lastInvoice); });
@@ -1545,7 +1563,18 @@ async function renderCustomers(){
   tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);">جاري التحميل...</td></tr>';
   try{
     const r = await api('getCustomers', {});
-    customersCache = r.customers || [];
+    customersCache = (r.customers || []).map(function(c){
+      return {
+        name: String(c.name || ''),
+        phone: String(c.phone || ''),
+        cardNumber: String(c.cardNumber || ''),
+        points: Number(c.points) || 0,
+        debt: Number(c.debt) || 0,
+        visits: Number(c.visits) || 0,
+        totalSpent: Number(c.totalSpent) || 0,
+        registerDate: c.registerDate || ''
+      };
+    });
     // Update KPIs
     document.getElementById('cust-total-count').textContent = customersCache.length;
     document.getElementById('cust-total-points').textContent = customersCache.reduce((s,c)=>s+(c.points||0),0).toLocaleString('ar-EG');
@@ -1554,22 +1583,25 @@ async function renderCustomers(){
     document.getElementById('cust-avg-visits').textContent = avgVisits;
 
     if(!customersCache.length){ tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);">مفيش عملاء مسجلين لسه</td></tr>'; return; }
-    tbody.innerHTML = customersCache.map(c=>{
-      let regDate = '—';
+    tbody.innerHTML = customersCache.map(function(c){
+      var regDate = '—';
       if(c.registerDate){
         try{ regDate = new Date(c.registerDate).toLocaleDateString('ar-EG'); }catch(e){ regDate = String(c.registerDate).split('T')[0] || '—'; }
       }
-      return '<tr><td>'+c.name+'</td><td>'+c.phone+'</td><td>'+(c.cardNumber||'—')+'</td><td>'+regDate+'</td><td>'+(c.visits||0)+'</td><td><span class="badge loyalty">'+(c.points||0)+'</span></td><td>'+(c.debt>0?'<span class="badge low">'+fmt(c.debt)+' ج.م</span>':'—')+'</td><td>'+fmt(c.totalSpent||0)+' ج.م</td><td>'+(c.debt>0?'<button class="small-btn" data-phone="'+c.phone+'" data-act="settle">💰 تسديد</button>':'')+'</td></tr>';
+      return '<tr><td>'+c.name+'</td><td>'+c.phone+'</td><td>'+(c.cardNumber||'—')+'</td><td>'+regDate+'</td><td>'+(c.visits||0)+'</td><td><span class="badge loyalty">'+c.points+'</span></td><td>'+(c.debt>0?'<span class="badge low">'+fmt(c.debt)+' ج.م</span>':'—')+'</td><td>'+fmt(c.totalSpent||0)+' ج.م</td><td>'+(c.debt>0?'<button class="small-btn" data-phone="'+c.phone+'" data-act="settle">💰 تسديد</button>':'')+'</td></tr>';
     }).join('');
-    tbody.querySelectorAll('[data-act="settle"]').forEach(b=>b.addEventListener('click', async ()=>{
-      const amountStr = prompt('اكتب المبلغ اللي هيتسدد (تقدر تسدد جزء من الدين بس):');
-      const amount = Number(amountStr);
-      if(!amountStr || isNaN(amount) || amount<=0) return;
-      try{ await api('settleDebt', {phone:b.dataset.phone, amount}); showToast('✅ تم التسديد'); await renderCustomers(); }
-      catch(e){ showToast('⚠️ '+e.message); }
-    }));
+    tbody.querySelectorAll('[data-act="settle"]').forEach(function(b){
+      b.addEventListener('click', async function(){
+        const amountStr = prompt('اكتب المبلغ اللي هيتسدد (تقدر تسدد جزء من الدين بس):');
+        const amount = Number(amountStr);
+        if(!amountStr || isNaN(amount) || amount<=0) return;
+        try{ await api('settleDebt', {phone:b.dataset.phone, amount}); showToast('✅ تم التسديد'); await renderCustomers(); }
+        catch(e){ showToast('⚠️ '+e.message); }
+      });
+    });
   }catch(e){ tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--danger);">حصل خطأ: '+e.message+'</td></tr>'; }
 }
+
 document.getElementById('customers-refresh-btn').addEventListener('click', renderCustomers);
 document.getElementById('customers-add-btn').addEventListener('click', async ()=>{
   const phone = prompt('رقم هاتف العميل:');
