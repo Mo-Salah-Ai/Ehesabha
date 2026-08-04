@@ -186,6 +186,7 @@
   }
 </style>
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -727,6 +728,48 @@ let shownNotifIds = ls_get('abdo_shown_notifs', []);
 let lookedUpCustomer = null;
 let customersCache = [];
 
+/* ================= تحميل العملاء مسبقاً ================= */
+async function loadCustomersCache(){
+  if(!navigator.onLine) return;
+  try{
+    const r = await api('getCustomers', {});
+    customersCache = r.customers || [];
+  }catch(e){ console.error('loadCustomersCache', e); }
+}
+
+/* ================= بحث محسّن عن العميل ================= */
+async function searchCustomer(query){
+  const resultsBox = document.getElementById('customer-search-results');
+  if(!query || query.length < 1){
+    // Show top recent customers from cache when field is focused/empty
+    if(customersCache.length > 0){
+      showCustomerResults(customersCache.slice(0, 15), '');
+    } else {
+      resultsBox.style.display='none';
+    }
+    return;
+  }
+  let matches = [];
+  const q = query.trim().toLowerCase();
+  if(customersCache.length > 0){
+    matches = customersCache.filter(c => (c.name && c.name.toLowerCase().includes(q)) || (c.phone && c.phone.includes(q)));
+  }
+  if(matches.length > 0){
+    showCustomerResults(matches, query);
+    return;
+  }
+  if(!navigator.onLine){ 
+    showCustomerResults([], query);
+    return;
+  }
+  try{
+    const r = await api('getCustomers', {});
+    customersCache = r.customers || [];
+    matches = customersCache.filter(c => (c.name && c.name.toLowerCase().includes(q)) || (c.phone && c.phone.includes(q)));
+    showCustomerResults(matches, query);
+  }catch(e){ resultsBox.style.display='none'; }
+}
+
 /* ================= حالة الاتصال ================= */
 function updateStatus(){
   const dot = document.getElementById('status-dot');
@@ -793,6 +836,7 @@ function enterApp(){
   updateStatus();
   startHeartbeat();
   startNotifPolling();
+  loadCustomersCache(); // preload customers for POS search
   // Show branch filter for manager+
   if(isManagerOrAbove()){
     document.getElementById('sales-branch-filter-wrap').style.display = 'block';
@@ -1008,36 +1052,20 @@ function resetCustomerLookup(){
   document.getElementById('customer-search-results').style.display = 'none';
 }
 
-async function searchCustomer(query){
-  const resultsBox = document.getElementById('customer-search-results');
-  if(!query || query.length < 2){ resultsBox.style.display='none'; return; }
-  if(!navigator.onLine){ 
-    // Search in local cache
-    const localMatches = customersCache.filter(c => c.name.includes(query) || c.phone.includes(query));
-    showCustomerResults(localMatches, query);
-    return;
-  }
-  try{
-    const r = await api('getCustomers', {});
-    customersCache = r.customers || [];
-    const matches = customersCache.filter(c => c.name.toLowerCase().includes(query.toLowerCase()) || c.phone.includes(query));
-    showCustomerResults(matches, query);
-  }catch(e){ resultsBox.style.display='none'; }
-}
-
 function showCustomerResults(matches, query){
   const resultsBox = document.getElementById('customer-search-results');
   if(matches.length === 0){
-    resultsBox.innerHTML = '<div class="res-new" id="res-new-customer">+ تسجيل عميل جديد باسم/رقم: '+query+'</div>';
+    resultsBox.innerHTML = '<div class="res-new" id="res-new-customer">+ تسجيل عميل جديد' + (query ? ' باسم/رقم: '+query : '') + '</div>';
     document.getElementById('res-new-customer').addEventListener('click', ()=>{
-      document.getElementById('cr-phone').value = query.match(/\d+/) ? query.match(/\d+/)[0] : '';
-      document.getElementById('cr-name').value = query.match(/\d+/) ? '' : query;
+      document.getElementById('cr-phone').value = query && query.match(/\d+/) ? query.match(/\d+/)[0] : '';
+      document.getElementById('cr-name').value = query && query.match(/\d+/) ? '' : (query || '');
       document.getElementById('customer-register-modal').classList.add('show');
       resultsBox.style.display='none';
     });
   } else {
     resultsBox.innerHTML = matches.map(c=>{
-      return '<div class="res-item" data-phone="'+c.phone+'"><div class="res-name">'+c.name+'</div><div class="res-meta">📱 '+c.phone+' | 🎁 '+c.points+' نقطة | 💰 '+fmt(c.debt)+' ج.م دين</div></div>';
+      const regDate = c.registerDate ? new Date(c.registerDate).toLocaleDateString('ar-EG') : '—';
+      return '<div class="res-item" data-phone="'+c.phone+'"><div class="res-name">'+c.name+'</div><div class="res-meta">📱 '+c.phone+' | 🎁 '+(c.points||0)+' نقطة | 💰 '+fmt(c.debt||0)+' ج.م دين | 📅 '+regDate+'</div></div>';
     }).join('');
     resultsBox.querySelectorAll('.res-item').forEach(item=>{
       item.addEventListener('click', ()=>{
@@ -1200,6 +1228,10 @@ document.getElementById('checkout-btn').addEventListener('click', async ()=>{
   document.getElementById('cash-given').value = '';
   syncPending();
   syncPendingCustomerUpdates();
+  // Refresh customers cache after checkout to reflect new points/spending
+  if(navigator.onLine){
+    setTimeout(()=>{ loadCustomersCache(); }, 2000);
+  }
 });
 document.getElementById('r-close').addEventListener('click', ()=>{ document.getElementById('receipt-modal').classList.remove('show'); });
 document.getElementById('r-print').addEventListener('click', ()=>{ if(lastInvoice) printReceipt(lastInvoice); });
@@ -1521,16 +1553,19 @@ async function renderCustomers(){
     const avgVisits = customersCache.length ? (customersCache.reduce((s,c)=>s+(c.visits||0),0) / customersCache.length).toFixed(1) : 0;
     document.getElementById('cust-avg-visits').textContent = avgVisits;
 
-    if(!r.customers.length){ tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);">مفيش عملاء مسجلين لسه</td></tr>'; return; }
-    tbody.innerHTML = r.customers.map(c=>{
-      const regDate = c.registerDate ? new Date(c.registerDate).toLocaleDateString('ar-EG') : '—';
-      return '<tr><td>'+c.name+'</td><td>'+c.phone+'</td><td>'+(c.cardNumber||'—')+'</td><td>'+regDate+'</td><td>'+(c.visits||0)+'</td><td><span class="badge loyalty">'+c.points+'</span></td><td>'+(c.debt>0?'<span class="badge low">'+fmt(c.debt)+' ج.م</span>':'—')+'</td><td>'+fmt(c.totalSpent||0)+' ج.م</td><td>'+(c.debt>0?'<button class="small-btn" data-phone="'+c.phone+'" data-act="settle">💰 تسديد</button>':'')+'</td></tr>';
+    if(!customersCache.length){ tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);">مفيش عملاء مسجلين لسه</td></tr>'; return; }
+    tbody.innerHTML = customersCache.map(c=>{
+      let regDate = '—';
+      if(c.registerDate){
+        try{ regDate = new Date(c.registerDate).toLocaleDateString('ar-EG'); }catch(e){ regDate = String(c.registerDate).split('T')[0] || '—'; }
+      }
+      return '<tr><td>'+c.name+'</td><td>'+c.phone+'</td><td>'+(c.cardNumber||'—')+'</td><td>'+regDate+'</td><td>'+(c.visits||0)+'</td><td><span class="badge loyalty">'+(c.points||0)+'</span></td><td>'+(c.debt>0?'<span class="badge low">'+fmt(c.debt)+' ج.م</span>':'—')+'</td><td>'+fmt(c.totalSpent||0)+' ج.م</td><td>'+(c.debt>0?'<button class="small-btn" data-phone="'+c.phone+'" data-act="settle">💰 تسديد</button>':'')+'</td></tr>';
     }).join('');
     tbody.querySelectorAll('[data-act="settle"]').forEach(b=>b.addEventListener('click', async ()=>{
       const amountStr = prompt('اكتب المبلغ اللي هيتسدد (تقدر تسدد جزء من الدين بس):');
       const amount = Number(amountStr);
       if(!amountStr || isNaN(amount) || amount<=0) return;
-      try{ await api('settleDebt', {phone:b.dataset.phone, amount}); showToast('✅ تم التسديد'); renderCustomers(); }
+      try{ await api('settleDebt', {phone:b.dataset.phone, amount}); showToast('✅ تم التسديد'); await renderCustomers(); }
       catch(e){ showToast('⚠️ '+e.message); }
     }));
   }catch(e){ tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--danger);">حصل خطأ: '+e.message+'</td></tr>'; }
