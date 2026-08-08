@@ -2088,14 +2088,16 @@ async function loadShiftSalesSummary(){
   const line = document.getElementById('ss-summary-line');
   ['ss-cash','ss-card','ss-wallet','ss-credit'].forEach(id=>document.getElementById(id).textContent = '—');
   if(!navigator.onLine){ line.textContent = 'محتاج نت عشان تحسب المبيعات'; return; }
-  line.textContent = 'جاري الحساب...';
+  line.textContent = 'جاري المزامنة والحساب...';
+  await syncPending();
   try{
     const r = await api('getShiftSalesSummary', {username: currentUser.username});
     document.getElementById('ss-cash').textContent = fmt(r.cashSales) + ' ج.م';
     document.getElementById('ss-card').textContent = fmt(r.cardSales) + ' ج.م';
     document.getElementById('ss-wallet').textContent = fmt(r.walletSales) + ' ج.م';
     document.getElementById('ss-credit').textContent = fmt(r.creditSales) + ' ج.م';
-    line.textContent = 'عدد الفواتير: ' + r.invoiceCount + ' — إجمالي المبيعات: ' + fmt(r.totalSales) + ' ج.م — المفروض يكون معاك في الدرج دلوقتي: ' + fmt(r.expectedCash) + ' ج.م (كاش أول الشفت ' + fmt(r.openingCash) + ' + مبيعات كاش ' + fmt(r.cashSales) + ')';
+    const pending = ls_get('abdo_pending_sales', []).length;
+    line.textContent = 'عدد الفواتير: ' + r.invoiceCount + ' — إجمالي المبيعات: ' + fmt(r.totalSales) + ' ج.م — المفروض يكون معاك في الدرج دلوقتي: ' + fmt(r.expectedCash) + ' ج.م (كاش أول الشفت ' + fmt(r.openingCash) + ' + مبيعات كاش ' + fmt(r.cashSales) + ')' + (pending>0 ? '\n⚠️ لسه فيه '+pending+' فاتورة مش متزامنة — اضغط تحديث تاني بعد ما تتأكد إنك أونلاين' : '');
   }catch(e){ line.textContent = 'حصل خطأ في حساب المبيعات: ' + e.message; }
 }
 document.getElementById('shift-sales-refresh-btn').addEventListener('click', loadShiftSalesSummary);
@@ -2120,6 +2122,10 @@ document.getElementById('clock-out-btn').addEventListener('click', async ()=>{
   if(cashField.value.trim()===''){ note.textContent = 'لازم تكتب الكاش الموجود في الدرج دلوقتي قبل ما تقفل الشفت'; cashField.focus(); return; }
   const closingCash = Number(cashField.value) || 0;
   try{
+    note.textContent = 'جاري مزامنة آخر الفواتير...';
+    await syncPending();
+    const stillPending = ls_get('abdo_pending_sales', []).length;
+    if(stillPending > 0){ note.textContent = '⚠️ لسه فيه '+stillPending+' فاتورة مش متزامنة، الحسبة ممكن متكونش دقيقة. جرب تاني لما تتأكد إنك أونلاين، أو كمل على مسؤوليتك.'; }
     note.textContent = 'جاري التسجيل...';
     const r = await api('clockOut', {username: currentUser.username, closingCash, hourlyWage: currentUser.hourlyWage});
     const diffTxt = r.diff === 0 ? 'الدرج مظبوط بالظبط ✅' : (r.diff > 0 ? ('في زيادة قدرها ' + fmt(r.diff) + ' ج.م') : ('في عجز قدره ' + fmt(Math.abs(r.diff)) + ' ج.م'));
