@@ -27,8 +27,8 @@
   [data-theme="dark"] body{ background-image:radial-gradient(circle at 1px 1px, rgba(255,255,255,0.04) 1px, transparent 0); }
   [data-theme="dark"] .field input,[data-theme="dark"] .field select,[data-theme="dark"] .field textarea,
   [data-theme="dark"] .search-row input,[data-theme="dark"] .modal .field input,[data-theme="dark"] .modal .field select{ background:var(--card); color:var(--ink); }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
+  *{box-sizing:border-box;min-width:0;}
+  html,body{margin:0;padding:0;overflow-x:hidden;width:100%;}
   body{font-family:'Tajawal',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;
     background-image:radial-gradient(circle at 1px 1px, rgba(28,24,21,0.05) 1px, transparent 0);background-size:22px 22px;}
   h1,h2,h3,.brand{font-family:'Cairo',sans-serif;}
@@ -59,7 +59,7 @@
   .who .avatar img{width:100%;height:100%;object-fit:cover;}
   .who button{background:none;border:none;color:#f0c9c9;cursor:pointer;font-size:12px;font-weight:700;}
 
-  .tabs{display:flex;gap:6px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);overflow-x:auto;position:sticky;top:60px;z-index:40;}
+  .tabs{display:flex;gap:6px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);overflow-x:auto;-webkit-overflow-scrolling:touch;position:sticky;top:var(--topbar-h,60px);z-index:40;}
   .tab-btn{border:none;background:transparent;padding:9px 16px;border-radius:999px;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer;white-space:nowrap;}
   .tab-btn.active{background:var(--olive);color:#fff;}
 
@@ -88,7 +88,7 @@
   .item-stock{font-size:11px;color:var(--muted);}
   .item-stock.low{color:var(--danger);font-weight:700;}
 
-  .cart{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);height:fit-content;position:sticky;top:130px;}
+  .cart{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);height:fit-content;position:sticky;top:calc(var(--topbar-h,60px) + var(--tabs-h,58px));}
   .cart h2{margin:0 0 10px;font-size:17px;}
   .cart-empty{color:var(--muted);font-size:13px;text-align:center;padding:26px 10px;}
   .cart-list{display:flex;flex-direction:column;gap:10px;max-height:300px;overflow-y:auto;margin-bottom:12px;}
@@ -178,11 +178,29 @@
   .loyalty-box{background:linear-gradient(135deg,#fbf1d9,#f4e0ac);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12.5px;}
   .loyalty-box .pts{font-family:'Cairo';font-weight:800;color:var(--brick-dark);font-size:16px;}
 
+  .item-name,.cat-chip,.tab-btn,.kpi .lbl,.kpi .val,td,th{overflow-wrap:break-word;word-break:break-word;}
+  .item-grid,.pos-grid,.kpis,.charts-grid{min-width:0;}
+  .pos-grid > *{min-width:0;}
+
   @media (max-width:640px){
-    .wrap{padding:12px;} .topbar{padding:12px 14px;} .brand{font-size:17px;}
+    .wrap{padding:12px;} .topbar{padding:10px 12px;} .brand{font-size:16px;}
+    .brand span:not(.mark){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw;}
     .who{font-size:11px;padding:4px 10px 4px 4px;} .panel{padding:14px;} .kpi .val{font-size:20px;}
-    .modal{padding:18px;} .item-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;}
+    .modal{padding:16px;} .item-grid{grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;}
     .item-thumb{font-size:22px;} .charts-grid{gap:12px;} .panel h3{font-size:14.5px;}
+    .status-txt{display:none;} .sync-btn{padding:6px 9px;}
+    .tabs{top:var(--topbar-h,52px);padding:8px 10px;gap:4px;}
+    .tab-btn{padding:8px 12px;font-size:12.5px;}
+    .kpis{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;}
+    .search-row input{font-size:16px;} .field input,.field select,.field textarea{font-size:16px;}
+    .item-name{font-size:12.5px;} .item-price{font-size:12.5px;}
+    .modal-actions{flex-direction:column;}
+    .img-row{flex-direction:column;align-items:flex-start;}
+  }
+  @media (max-width:400px){
+    .item-grid{grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:6px;}
+    .kpis{grid-template-columns:1fr 1fr;}
+    .brand span:not(.mark){max-width:26vw;}
   }
 </style>
 <base target="_blank">
@@ -225,7 +243,10 @@
     <button class="tab-btn" data-tab="returns">المرتجعات</button>
     <button class="tab-btn" data-tab="customers">العملاء</button>
     <button class="tab-btn" data-tab="reports">التقارير</button>
+    <button class="tab-btn" data-tab="attendance">🕒 الحضور والانصراف</button>
     <button class="tab-btn mgr-only" data-tab="admin" style="display:none;">المنتجات</button>
+    <button class="tab-btn mgr-only" data-tab="suppliers" style="display:none;">الموردين</button>
+    <button class="tab-btn mgr-only" data-tab="stock" style="display:none;">المخزون</button>
     <button class="tab-btn mgr-only" data-tab="employees" style="display:none;">الموظفين</button>
     <button class="tab-btn mgr-only" data-tab="branches" style="display:none;">الفروع</button>
     <button class="tab-btn mgr-only" data-tab="settings" style="display:none;">الإعدادات</button>
@@ -422,6 +443,37 @@
       </div>
     </section>
 
+    <!-- ATTENDANCE -->
+    <section class="screen" id="screen-attendance">
+      <div class="panel" id="clock-card">
+        <h3>🕒 حضورك وانصرافك</h3>
+        <div id="clock-status" style="text-align:center;padding:10px 0;">
+          <div class="val" id="clock-status-txt" style="font-size:18px;font-weight:800;font-family:'Cairo';margin-bottom:6px;">جاري التحميل...</div>
+          <div id="clock-status-sub" style="font-size:12.5px;color:var(--muted);"></div>
+        </div>
+        <button class="btn-primary" id="clock-in-btn" style="display:none;">✅ تسجيل حضور</button>
+        <button class="btn-primary" id="clock-out-btn" style="display:none;background:var(--danger);">🚪 تسجيل انصراف</button>
+        <div class="login-err" id="clock-note" style="color:var(--olive-dark);margin-top:8px;"></div>
+      </div>
+      <div class="panel">
+        <h3>سجل حضورك <button class="btn-ghost" style="width:auto;padding:8px 16px;font-size:13px;" id="my-attendance-refresh-btn">🔄 تحديث</button></h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>التاريخ</th><th>الحضور</th><th>الانصراف</th><th>عدد الساعات</th><th>قيمة الشفت</th></tr></thead>
+          <tbody id="my-attendance-body"><tr><td colspan="5" style="text-align:center;color:var(--muted);">دوس تحديث عشان تشوف سجلك</td></tr></tbody>
+        </table></div>
+      </div>
+      <div class="panel mgr-only" style="display:none;">
+        <h3>حضور وانصراف كل الموظفين <button class="btn-ghost" style="width:auto;padding:8px 16px;font-size:13px;" id="all-attendance-refresh-btn">🔄 تحديث</button></h3>
+        <div class="field" style="max-width:260px;"><label>فلترة بالموظف</label>
+          <select id="att-emp-filter"><option value="all">كل الموظفين</option></select>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>الموظف</th><th>الحضور</th><th>الانصراف</th><th>عدد الساعات</th><th>أجر الساعة</th><th>قيمة الشفت</th><th>الفرع</th></tr></thead>
+          <tbody id="all-attendance-body"><tr><td colspan="7" style="text-align:center;color:var(--muted);">دوس تحديث عشان تشوف الحضور</td></tr></tbody>
+        </table></div>
+      </div>
+    </section>
+
     <!-- PRODUCTS -->
     <section class="screen" id="screen-admin">
       <div class="panel">
@@ -432,6 +484,55 @@
         <div class="table-wrap"><table>
           <thead><tr><th></th><th>الاسم</th><th>الفئة</th><th>السعر</th><th>الباركود</th><th>المخزون</th><th>الفرع</th><th></th></tr></thead>
           <tbody id="admin-products-body"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- SUPPLIERS -->
+    <section class="screen" id="screen-suppliers">
+      <div class="panel">
+        <h3>الموردين <button class="btn-primary" style="width:auto;padding:8px 16px;font-size:13px;" id="add-supplier-btn">+ مورد جديد</button></h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>اسم المورد</th><th>رقم الهاتف</th><th>العنوان</th><th>ملاحظات</th><th></th></tr></thead>
+          <tbody id="suppliers-body"><tr><td colspan="5" style="text-align:center;color:var(--muted);">جاري التحميل...</td></tr></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- STOCK / INVENTORY -->
+    <section class="screen" id="screen-stock">
+      <div class="panel">
+        <h3>📥 توريد للمخزن (وارد)</h3>
+        <div class="field"><label>المورد</label>
+          <select id="stin-supplier"><option value="">-- بدون مورد محدد --</option></select>
+        </div>
+        <div class="field"><label>الصنف</label><select id="stin-product"></select></div>
+        <div class="field" style="max-width:160px;"><label>الكمية</label><input id="stin-qty" type="number" step="1" min="1"></div>
+        <div class="field"><label>ملاحظات (اختياري)</label><input id="stin-notes"></div>
+        <button class="btn-primary" style="width:auto;padding:10px 22px;" id="stin-save">📥 تسجيل التوريد</button>
+        <div class="login-err" id="stin-note" style="color:var(--olive-dark);"></div>
+      </div>
+      <div class="panel">
+        <h3>📤 صرف من المخزن (خروج منتجات)</h3>
+        <div class="field"><label>الصنف</label><select id="stout-product"></select></div>
+        <div class="field" style="max-width:160px;"><label>الكمية</label><input id="stout-qty" type="number" step="1" min="1"></div>
+        <div class="field" style="max-width:260px;"><label>السبب</label>
+          <select id="stout-reason">
+            <option value="نقل لفرع تاني">نقل لفرع تاني</option>
+            <option value="تالف / هالك">تالف / هالك</option>
+            <option value="استخدام داخلي">استخدام داخلي</option>
+            <option value="غير ذلك">غير ذلك</option>
+          </select>
+        </div>
+        <div class="field"><label>ملاحظات (اختياري)</label><input id="stout-notes"></div>
+        <button class="btn-primary" style="width:auto;padding:10px 22px;background:var(--brick);" id="stout-save">📤 تنفيذ الصرف</button>
+        <div class="login-err" id="stout-note" style="color:var(--olive-dark);"></div>
+      </div>
+      <div class="panel">
+        <h3>سجل حركة المخزون <button class="btn-ghost" style="width:auto;padding:8px 16px;font-size:13px;" id="stock-refresh-btn">🔄 تحديث</button></h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>التاريخ</th><th>النوع</th><th>الصنف</th><th>الكمية</th><th>المورد / السبب</th><th>بواسطة</th><th>ملاحظات</th></tr></thead>
+          <tbody id="stock-body"><tr><td colspan="7" style="text-align:center;color:var(--muted);">دوس تحديث عشان تشوف السجل</td></tr></tbody>
         </table></div>
       </div>
     </section>
@@ -575,6 +676,7 @@
     <div class="field"><label>رقم البطاقة (اختياري)</label><input id="em-card"></div>
     <div class="field"><label>الصلاحية</label><select id="em-role"></select></div>
     <div class="field"><label>الفرع</label><select id="em-branch"></select></div>
+    <div class="field"><label>أجر الساعة (ج.م، اختياري — يُستخدم لحساب قيمة الشفت)</label><input id="em-wage" type="number" step="0.5" min="0"></div>
     <div class="field">
       <label>صورة الموظف</label>
       <div class="img-row">
@@ -585,6 +687,19 @@
     </div>
     <div class="login-err" id="em-note" style="color:var(--olive-dark);"></div>
     <div class="modal-actions"><button class="btn-ghost" id="em-cancel">إلغاء</button><button class="btn-primary" id="em-save">حفظ</button></div>
+  </div>
+</div>
+
+<!-- Supplier modal -->
+<div class="modal-bg" id="supplier-modal">
+  <div class="modal">
+    <h3 id="sup-title">مورد جديد</h3>
+    <div class="field"><label>اسم المورد</label><input id="sup-name"></div>
+    <div class="field"><label>رقم الهاتف</label><input id="sup-phone"></div>
+    <div class="field"><label>العنوان (اختياري)</label><input id="sup-address"></div>
+    <div class="field"><label>ملاحظات (اختياري)</label><textarea id="sup-notes" rows="2"></textarea></div>
+    <div class="login-err" id="sup-note" style="color:var(--olive-dark);"></div>
+    <div class="modal-actions"><button class="btn-ghost" id="sup-cancel">إلغاء</button><button class="btn-primary" id="sup-save">حفظ</button></div>
   </div>
 </div>
 
@@ -835,6 +950,7 @@ async function enterApp(){
   if(isManagerOrAbove()){
     document.getElementById('sales-branch-filter-wrap').style.display = 'block';
   }
+  setTimeout(updateLayoutOffsets, 50);
 }
 
 document.getElementById('logout-btn').addEventListener('click', ()=>{
@@ -845,6 +961,25 @@ document.getElementById('logout-btn').addEventListener('click', ()=>{
 });
 
 updateStatus();
+
+/* ================= ضبط ارتفاع الشريط العلوي والتابات ديناميكيًا (لمنع كسر الشاشة على الموبايل) ================= */
+function updateLayoutOffsets(){
+  const topbar = document.querySelector('.topbar');
+  const tabs = document.getElementById('tabs');
+  if(topbar) document.documentElement.style.setProperty('--topbar-h', topbar.offsetHeight + 'px');
+  if(tabs) document.documentElement.style.setProperty('--tabs-h', tabs.offsetHeight + 'px');
+}
+window.addEventListener('resize', updateLayoutOffsets);
+window.addEventListener('orientationchange', ()=>setTimeout(updateLayoutOffsets, 250));
+window.addEventListener('load', updateLayoutOffsets);
+setTimeout(updateLayoutOffsets, 300);
+if(window.ResizeObserver){
+  const ro = new ResizeObserver(updateLayoutOffsets);
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const tb = document.querySelector('.topbar'); if(tb) ro.observe(tb);
+    const tabsEl = document.getElementById('tabs'); if(tabsEl) ro.observe(tabsEl);
+  });
+}
 
 /* ================= تبويبات ================= */
 document.querySelectorAll('.tab-btn').forEach(btn=>{
@@ -859,6 +994,9 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(btn.dataset.tab==='customers') renderCustomers();
     if(btn.dataset.tab==='reports') renderReport();
     if(btn.dataset.tab==='admin') renderAdminProducts();
+    if(btn.dataset.tab==='attendance') renderAttendanceTab();
+    if(btn.dataset.tab==='suppliers') renderSuppliersTab();
+    if(btn.dataset.tab==='stock') renderStockTab();
     if(btn.dataset.tab==='employees') renderEmployeesTab();
     if(btn.dataset.tab==='branches') renderBranchesTab();
   });
@@ -1798,6 +1936,201 @@ function renderAdminProducts(){
   }));
 }
 
+/* ================= الحضور والانصراف (شخصي) ================= */
+function fmtDT(v){
+  if(!v) return '—';
+  const d = new Date(v);
+  if(isNaN(d.getTime())) return '—';
+  return d.toLocaleString('ar-EG', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+}
+async function renderAttendanceTab(){
+  const statusTxt = document.getElementById('clock-status-txt');
+  const statusSub = document.getElementById('clock-status-sub');
+  const inBtn = document.getElementById('clock-in-btn');
+  const outBtn = document.getElementById('clock-out-btn');
+  document.getElementById('clock-note').textContent = '';
+  inBtn.style.display='none'; outBtn.style.display='none';
+  if(!navigator.onLine){ statusTxt.textContent = '⚠️ محتاج نت'; statusSub.textContent=''; return; }
+  statusTxt.textContent = 'جاري التحميل...';
+  try{
+    const r = await api('getMyOpenShift', {username: currentUser.username});
+    if(r.open){
+      statusTxt.textContent = '🟢 انت داخل شفت دلوقتي';
+      statusSub.textContent = 'وقت الحضور: ' + fmtDT(r.open.checkIn);
+      outBtn.style.display='block';
+    } else {
+      statusTxt.textContent = '⚪ مسجلتش حضور دلوقتي';
+      statusSub.textContent = 'دوس تسجيل حضور عشان تبدأ الشفت';
+      inBtn.style.display='block';
+    }
+  }catch(e){ statusTxt.textContent = 'حصل خطأ: ' + e.message; }
+  loadMyAttendance();
+  if(isManagerOrAbove()){ loadAllAttendance(); }
+}
+document.getElementById('clock-in-btn').addEventListener('click', async ()=>{
+  const note = document.getElementById('clock-note');
+  if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت'; return; }
+  try{
+    note.textContent = 'جاري التسجيل...';
+    await api('clockIn', {username: currentUser.username, name: currentUser.name, branch: currentUser.branch||''});
+    note.textContent = ''; showToast('✅ اتسجل الحضور');
+    renderAttendanceTab();
+  }catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
+});
+document.getElementById('clock-out-btn').addEventListener('click', async ()=>{
+  const note = document.getElementById('clock-note');
+  if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت'; return; }
+  try{
+    note.textContent = 'جاري التسجيل...';
+    const r = await api('clockOut', {username: currentUser.username});
+    note.textContent = ''; showToast('✅ اتسجل الانصراف — الشفت: ' + fmt(r.total) + ' ج.م (' + r.hours + ' ساعة)');
+    renderAttendanceTab();
+  }catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
+});
+document.getElementById('my-attendance-refresh-btn').addEventListener('click', loadMyAttendance);
+async function loadMyAttendance(){
+  const tbody = document.getElementById('my-attendance-body');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">جاري التحميل...</td></tr>';
+  if(!navigator.onLine){ tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">محتاج نت</td></tr>'; return; }
+  try{
+    const r = await api('getAttendance', {username: currentUser.username});
+    const list = r.attendance || [];
+    if(!list.length){ tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">مفيش سجل حضور لسه</td></tr>'; return; }
+    tbody.innerHTML = list.map(a=>{ const d = new Date(a.checkIn); const dayStr = isNaN(d.getTime())?'—':d.toLocaleDateString('ar-EG'); return '<tr><td>'+dayStr+'</td><td>'+fmtDT(a.checkIn)+'</td><td>'+(a.checkOut?fmtDT(a.checkOut):'— لسه شغال —')+'</td><td>'+(a.hours!==''?a.hours:'—')+'</td><td>'+(a.total!==''?fmt(a.total)+' ج.م':'—')+'</td></tr>'; }).join('');
+  }catch(e){ tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--danger);">حصل خطأ: '+e.message+'</td></tr>'; }
+}
+document.getElementById('all-attendance-refresh-btn').addEventListener('click', loadAllAttendance);
+let allAttendanceCache = [];
+async function loadAllAttendance(){
+  const tbody = document.getElementById('all-attendance-body');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);">جاري التحميل...</td></tr>';
+  if(!navigator.onLine){ tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);">محتاج نت</td></tr>'; return; }
+  try{
+    const [attR, usersR] = await Promise.all([ api('getAttendance', {}), api('getUsers', {}) ]);
+    allAttendanceCache = attR.attendance || [];
+    const filterSel = document.getElementById('att-emp-filter');
+    const currentVal = filterSel.value || 'all';
+    filterSel.innerHTML = '<option value="all">كل الموظفين</option>' + usersR.users.map(u=>'<option value="'+u.username+'">'+u.name+'</option>').join('');
+    filterSel.value = currentVal;
+    filterSel.onchange = paintAllAttendance;
+    paintAllAttendance();
+  }catch(e){ tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);">حصل خطأ: '+e.message+'</td></tr>'; }
+}
+function paintAllAttendance(){
+  const filterVal = document.getElementById('att-emp-filter').value;
+  const list = filterVal==='all' ? allAttendanceCache : allAttendanceCache.filter(a=>a.username===filterVal);
+  const tbody = document.getElementById('all-attendance-body');
+  if(!list.length){ tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);">مفيش سجل حضور</td></tr>'; return; }
+  tbody.innerHTML = list.map(a=>'<tr><td>'+a.name+'</td><td>'+fmtDT(a.checkIn)+'</td><td>'+(a.checkOut?fmtDT(a.checkOut):'— لسه شغال —')+'</td><td>'+(a.hours!==''?a.hours:'—')+'</td><td>'+(a.hourlyWage!==''?fmt(a.hourlyWage)+' ج.م':'—')+'</td><td>'+(a.total!==''?fmt(a.total)+' ج.م':'—')+'</td><td>'+(a.branch||'—')+'</td></tr>').join('');
+}
+
+/* ================= الموردين ================= */
+let suppliersCache = [], editingSupplierId = null;
+async function renderSuppliersTab(){
+  const tbody = document.getElementById('suppliers-body');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">جاري التحميل...</td></tr>';
+  if(!navigator.onLine){ tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">محتاج نت</td></tr>'; return; }
+  try{
+    const r = await api('getSuppliers', {});
+    suppliersCache = r.suppliers || [];
+    paintSuppliers();
+  }catch(e){ tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--danger);">حصل خطأ: '+e.message+'</td></tr>'; }
+}
+function paintSuppliers(){
+  const tbody = document.getElementById('suppliers-body');
+  if(!suppliersCache.length){ tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">مفيش موردين لسه</td></tr>'; return; }
+  tbody.innerHTML = suppliersCache.map(s=>'<tr><td>'+s.name+'</td><td>'+(s.phone||'—')+'</td><td>'+(s.address||'—')+'</td><td>'+(s.notes||'—')+'</td><td style="display:flex;gap:6px;"><button class="small-btn" data-act="edit-sup" data-id="'+s.id+'">تعديل</button><button class="small-btn danger" data-act="del-sup" data-id="'+s.id+'">حذف</button></td></tr>').join('');
+  tbody.querySelectorAll('[data-act="edit-sup"]').forEach(b=>b.addEventListener('click', ()=>{ const s = suppliersCache.find(x=>x.id===b.dataset.id); openSupplierModal(s); }));
+  tbody.querySelectorAll('[data-act="del-sup"]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!navigator.onLine){ showToast('⚠️ محتاج نت'); return; }
+    if(!confirm('متأكد من حذف المورد؟')) return;
+    try{ await api('deleteSupplier', {id:b.dataset.id}); showToast('✅ اتحذف المورد'); renderSuppliersTab(); }catch(e){ showToast('⚠️ '+e.message); }
+  }));
+}
+function openSupplierModal(s){
+  editingSupplierId = s ? s.id : null;
+  document.getElementById('sup-title').textContent = s ? 'تعديل مورد' : 'مورد جديد';
+  document.getElementById('sup-name').value = s ? s.name : '';
+  document.getElementById('sup-phone').value = s ? s.phone : '';
+  document.getElementById('sup-address').value = s ? s.address : '';
+  document.getElementById('sup-notes').value = s ? s.notes : '';
+  document.getElementById('sup-note').textContent = '';
+  document.getElementById('supplier-modal').classList.add('show');
+}
+document.getElementById('add-supplier-btn').addEventListener('click', ()=>openSupplierModal());
+document.getElementById('sup-cancel').addEventListener('click', ()=>{ document.getElementById('supplier-modal').classList.remove('show'); });
+document.getElementById('sup-save').addEventListener('click', async ()=>{
+  const note = document.getElementById('sup-note');
+  const name = document.getElementById('sup-name').value.trim();
+  if(!name){ note.textContent = 'اكتب اسم المورد'; return; }
+  if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت'; return; }
+  const payload = { id: editingSupplierId, name, phone: document.getElementById('sup-phone').value.trim(), address: document.getElementById('sup-address').value.trim(), notes: document.getElementById('sup-notes').value.trim() };
+  try{ note.textContent = 'جاري الحفظ...'; await api('saveSupplier', payload); document.getElementById('supplier-modal').classList.remove('show'); showToast('✅ تم الحفظ'); renderSuppliersTab(); }
+  catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
+});
+
+/* ================= المخزون (وارد / صرف) ================= */
+function populateStockProductSelects(){
+  const opts = products.map(p=>'<option value="'+p.id+'">'+p.name+' — '+(p.branch||'كل الفروع')+' (رصيد: '+(p.stock!==''&&p.stock!==undefined?p.stock:'—')+')</option>').join('');
+  document.getElementById('stin-product').innerHTML = opts;
+  document.getElementById('stout-product').innerHTML = opts;
+}
+async function renderStockTab(){
+  populateStockProductSelects();
+  const supSel = document.getElementById('stin-supplier');
+  const currentVal = supSel.value || '';
+  if(navigator.onLine){
+    try{ const r = await api('getSuppliers', {}); suppliersCache = r.suppliers || []; }catch(e){}
+  }
+  supSel.innerHTML = '<option value="">-- بدون مورد محدد --</option>' + suppliersCache.map(s=>'<option value="'+s.name+'">'+s.name+'</option>').join('');
+  supSel.value = currentVal;
+  document.getElementById('stin-note').textContent = '';
+  document.getElementById('stout-note').textContent = '';
+  loadStockMovements();
+}
+document.getElementById('stin-save').addEventListener('click', async ()=>{
+  const note = document.getElementById('stin-note');
+  const productId = document.getElementById('stin-product').value;
+  const qty = Number(document.getElementById('stin-qty').value);
+  if(!productId || !qty || qty<=0){ note.textContent = 'اختار صنف واكتب كمية صحيحة'; return; }
+  if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت'; return; }
+  const payload = { items:[{id:productId, qty}], supplierName: document.getElementById('stin-supplier').value, by: currentUser.username, notes: document.getElementById('stin-notes').value.trim() };
+  try{
+    note.textContent = 'جاري التسجيل...';
+    await api('recordStockIn', payload);
+    document.getElementById('stin-qty').value=''; document.getElementById('stin-notes').value='';
+    note.textContent = ''; showToast('✅ اتسجل التوريد');
+    await refreshProducts(); renderCats(); renderItems(); populateStockProductSelects(); loadStockMovements();
+  }catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
+});
+document.getElementById('stout-save').addEventListener('click', async ()=>{
+  const note = document.getElementById('stout-note');
+  const productId = document.getElementById('stout-product').value;
+  const qty = Number(document.getElementById('stout-qty').value);
+  if(!productId || !qty || qty<=0){ note.textContent = 'اختار صنف واكتب كمية صحيحة'; return; }
+  if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت'; return; }
+  const payload = { items:[{id:productId, qty}], reason: document.getElementById('stout-reason').value, by: currentUser.username, notes: document.getElementById('stout-notes').value.trim() };
+  try{
+    note.textContent = 'جاري التنفيذ...';
+    await api('recordStockOut', payload);
+    document.getElementById('stout-qty').value=''; document.getElementById('stout-notes').value='';
+    note.textContent = ''; showToast('✅ اتنفذ الصرف');
+    await refreshProducts(); renderCats(); renderItems(); populateStockProductSelects(); loadStockMovements();
+  }catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
+});
+document.getElementById('stock-refresh-btn').addEventListener('click', loadStockMovements);
+async function loadStockMovements(){
+  const tbody = document.getElementById('stock-body');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);">جاري التحميل...</td></tr>';
+  if(!navigator.onLine){ tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);">محتاج نت</td></tr>'; return; }
+  try{
+    const r = await api('getStockMovements', {limit:200});
+    const list = r.movements || [];
+    if(!list.length){ tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);">مفيش حركة مخزون لسه</td></tr>'; return; }
+    tbody.innerHTML = list.map(m=>'<tr><td>'+fmtDT(m.date)+'</td><td><span class="badge '+(m.type==='وارد من مورد'?'cash':'low')+'">'+m.type+'</span></td><td>'+m.productName+'</td><td>'+m.qty+'</td><td>'+(m.party||'—')+'</td><td>'+(m.by||'—')+'</td><td>'+(m.notes||'—')+'</td></tr>').join('');
+  }catch(e){ tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);">حصل خطأ: '+e.message+'</td></tr>'; }
+}
+
 /* ================= الموظفين + الحضور + التنبيهات ================= */
 let editingEmployeeUsername = null, pendingEmpImageBase64 = null, pendingEmpImageMeta = null;
 let presenceCache = [];
@@ -1870,6 +2203,7 @@ function openEmployeeModal(user){
   roleSel.innerHTML = allowedRoles.map(r=>'<option value="'+r+'" '+(user && user.role===r?'selected':'')+'>'+ROLE_LABEL[r]+'</option>').join('');
   if(user && !allowedRoles.includes(user.role)){ const opt=document.createElement('option'); opt.value=user.role; opt.textContent=ROLE_LABEL[user.role]+' (مقفول التعديل)'; opt.selected=true; opt.disabled=true; roleSel.appendChild(opt); }
   populateBranchSelect(document.getElementById('em-branch'), user ? user.branch : (branches[0]?branches[0].name:''));
+  document.getElementById('em-wage').value = user && user.hourlyWage !== '' && user.hourlyWage !== undefined ? user.hourlyWage : '';
   document.getElementById('em-note').textContent = '';
   const preview = document.getElementById('em-image-preview');
   if(user && user.photo){ preview.src = user.photo; preview.style.display='block'; } else { preview.style.display='none'; }
@@ -1889,7 +2223,8 @@ document.getElementById('em-save').addEventListener('click', async ()=>{
   const payload = { actingUsername: currentUser.username, username: document.getElementById('em-username').value.trim(),
     password: document.getElementById('em-password').value, name: document.getElementById('em-name').value.trim(),
     cardNumber: document.getElementById('em-card').value.trim(),
-    role: document.getElementById('em-role').value, branch: document.getElementById('em-branch').value };
+    role: document.getElementById('em-role').value, branch: document.getElementById('em-branch').value,
+    hourlyWage: document.getElementById('em-wage').value === '' ? '' : Number(document.getElementById('em-wage').value) };
   if(!payload.username || !payload.name){ note.textContent = 'اكتب اسم المستخدم والاسم'; return; }
   if(!editingEmployeeUsername && !payload.password){ note.textContent = 'حط كلمة مرور للموظف الجديد'; return; }
   if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت'; return; }
