@@ -463,6 +463,16 @@
         </div>
         <div class="field" id="clockin-cash-field" style="max-width:240px;margin:0 auto 10px;display:none;"><label>الكاش الموجود في الدرج دلوقتي (بداية الشفت)</label><input id="clockin-cash" type="number" step="0.5" value="0"></div>
         <button class="btn-primary" id="clock-in-btn" style="display:none;">✅ تسجيل حضور</button>
+        <div class="panel" id="shift-sales-box" style="display:none;background:var(--paper);margin:10px 0;text-align:right;">
+          <h3 style="margin-top:0;font-size:14.5px;">🧾 مبيعات الشفت الحالي <button class="btn-ghost" style="width:auto;padding:6px 12px;font-size:12px;" id="shift-sales-refresh-btn" type="button">🔄 تحديث</button></h3>
+          <div class="kpis" style="margin-bottom:0;">
+            <div class="kpi"><div class="lbl">كاش</div><div class="val" id="ss-cash" style="font-size:17px;">—</div></div>
+            <div class="kpi brick"><div class="lbl">فيزا</div><div class="val" id="ss-card" style="font-size:17px;">—</div></div>
+            <div class="kpi gold"><div class="lbl">محفظة</div><div class="val" id="ss-wallet" style="font-size:17px;">—</div></div>
+            <div class="kpi"><div class="lbl">آجل</div><div class="val" id="ss-credit" style="font-size:17px;">—</div></div>
+          </div>
+          <p style="font-size:12.5px;color:var(--muted);margin:10px 0 0;" id="ss-summary-line">جاري الحساب...</p>
+        </div>
         <div class="field" id="clockout-cash-field" style="max-width:240px;margin:0 auto 10px;display:none;"><label>الكاش الموجود في الدرج دلوقتي (قفل الشفت)</label><input id="clockout-cash" type="number" step="0.5" value="0"></div>
         <button class="btn-primary" id="clock-out-btn" style="display:none;background:var(--danger);">🚪 تسجيل انصراف</button>
         <div class="login-err" id="clock-note" style="color:var(--olive-dark);margin-top:8px;white-space:pre-line;"></div>
@@ -2047,9 +2057,10 @@ async function renderAttendanceTab(){
   const outBtn = document.getElementById('clock-out-btn');
   const cashInField = document.getElementById('clockin-cash-field');
   const cashOutField = document.getElementById('clockout-cash-field');
+  const salesBox = document.getElementById('shift-sales-box');
   document.getElementById('clock-note').textContent = '';
   inBtn.style.display='none'; outBtn.style.display='none';
-  cashInField.style.display='none'; cashOutField.style.display='none';
+  cashInField.style.display='none'; cashOutField.style.display='none'; salesBox.style.display='none';
   if(!navigator.onLine){ statusTxt.textContent = '⚠️ محتاج نت'; statusSub.textContent=''; return; }
   statusTxt.textContent = 'جاري التحميل...';
   try{
@@ -2060,6 +2071,8 @@ async function renderAttendanceTab(){
       outBtn.style.display='block';
       cashOutField.style.display='block';
       document.getElementById('clockout-cash').value = '';
+      salesBox.style.display='block';
+      loadShiftSalesSummary();
     } else {
       statusTxt.textContent = '⚪ مسجلتش حضور دلوقتي';
       statusSub.textContent = 'دوس تسجيل حضور عشان تبدأ الشفت';
@@ -2071,6 +2084,21 @@ async function renderAttendanceTab(){
   loadMyAttendance();
   if(isManagerOrAbove()){ loadAllAttendance(); }
 }
+async function loadShiftSalesSummary(){
+  const line = document.getElementById('ss-summary-line');
+  ['ss-cash','ss-card','ss-wallet','ss-credit'].forEach(id=>document.getElementById(id).textContent = '—');
+  if(!navigator.onLine){ line.textContent = 'محتاج نت عشان تحسب المبيعات'; return; }
+  line.textContent = 'جاري الحساب...';
+  try{
+    const r = await api('getShiftSalesSummary', {username: currentUser.username});
+    document.getElementById('ss-cash').textContent = fmt(r.cashSales) + ' ج.م';
+    document.getElementById('ss-card').textContent = fmt(r.cardSales) + ' ج.م';
+    document.getElementById('ss-wallet').textContent = fmt(r.walletSales) + ' ج.م';
+    document.getElementById('ss-credit').textContent = fmt(r.creditSales) + ' ج.م';
+    line.textContent = 'عدد الفواتير: ' + r.invoiceCount + ' — إجمالي المبيعات: ' + fmt(r.totalSales) + ' ج.م — المفروض يكون معاك في الدرج دلوقتي: ' + fmt(r.expectedCash) + ' ج.م (كاش أول الشفت ' + fmt(r.openingCash) + ' + مبيعات كاش ' + fmt(r.cashSales) + ')';
+  }catch(e){ line.textContent = 'حصل خطأ في حساب المبيعات: ' + e.message; }
+}
+document.getElementById('shift-sales-refresh-btn').addEventListener('click', loadShiftSalesSummary);
 document.getElementById('clock-in-btn').addEventListener('click', async ()=>{
   const note = document.getElementById('clock-note');
   if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت'; return; }
