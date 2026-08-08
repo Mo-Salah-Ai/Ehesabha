@@ -598,6 +598,20 @@
   </div>
 </div>
 
+<!-- Customer Invoices Modal -->
+<div class="modal-bg" id="customer-invoices-modal">
+  <div class="modal" style="max-width:600px;">
+    <h3 id="ci-title">فواتير العميل</h3>
+    <div id="ci-customer-info" style="font-size:13px;color:var(--muted);margin-bottom:12px;"></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>الفرع</th><th>الإجمالي</th><th>الحالة</th></tr></thead>
+      <tbody id="ci-body"></tbody>
+    </table></div>
+    <div style="margin-top:12px;font-weight:800;font-family:'Cairo';font-size:16px;" id="ci-total"></div>
+    <div class="modal-actions"><button class="btn-ghost" id="ci-close">إغلاق</button></div>
+  </div>
+</div>
+
 <script>
 /* ================= الإعدادات الثابتة ================= */
 const API_URL = "https://script.google.com/macros/s/AKfycbycR_E52igYGgzZC3tf9nPSB-hmmPccMfXa_sQI48GEz4ghNezfOeNt4Z9diB4yZEwt/exec";
@@ -2053,19 +2067,5 @@ if('serviceWorker' in navigator){ window.addEventListener('load', ()=>{ navigato
 /* ================= بدء التشغيل ================= */
 if(currentUser){ enterApp(); if(navigator.onLine){ refreshProducts().then(()=>{renderCats();renderItems();}); refreshSettings(); refreshBranches(); } }
 </script>
-
-<!-- Customer Invoices Modal -->
-<div class="modal-bg" id="customer-invoices-modal">
-  <div class="modal" style="max-width:600px;">
-    <h3 id="ci-title">فواتير العميل</h3>
-    <div id="ci-customer-info" style="font-size:13px;color:var(--muted);margin-bottom:12px;"></div>
-    <div class="table-wrap"><table>
-      <thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>الفرع</th><th>الإجمالي</th><th>الحالة</th></tr></thead>
-      <tbody id="ci-body"></tbody>
-    </table></div>
-    <div style="margin-top:12px;font-weight:800;font-family:'Cairo';font-size:16px;" id="ci-total"></div>
-    <div class="modal-actions"><button class="btn-ghost" id="ci-close">إغلاق</button></div>
-  </div>
-</div>
 </body>
 </html>
