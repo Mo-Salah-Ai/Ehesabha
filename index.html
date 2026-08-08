@@ -343,8 +343,10 @@
       <div class="panel">
         <h3>📒 حسبة الآجل (الديون)</h3>
         <div class="kpis" style="margin-bottom:0;">
-          <div class="kpi brick"><div class="lbl">إجمالي الديون المستحقة</div><div class="val" id="credit-total-debt">—</div></div>
+          <div class="kpi brick"><div class="lbl">إجمالي ديون العملاء (لينا)</div><div class="val" id="credit-total-debt">—</div></div>
           <div class="kpi gold"><div class="lbl">عدد العملاء المديونين</div><div class="val" id="credit-debtor-count">—</div></div>
+          <div class="kpi brick"><div class="lbl">إجمالي آجل الموردين (علينا)</div><div class="val" id="supplier-total-debt">—</div></div>
+          <div class="kpi" id="credit-net-kpi"><div class="lbl">الصافي (ديون العملاء - آجل الموردين)</div><div class="val" id="credit-net">—</div></div>
         </div>
       </div>
       <div class="panel mgr-only" style="display:none;">
@@ -1591,19 +1593,28 @@ function printReceipt(invoice){
 }
 
 /* ================= لوحة التحكم ================= */
+function paintCreditNet(){
+  const debtors = customersCache.filter(c=>c.debt>0);
+  const customerDebt = debtors.reduce((s,c)=>s+c.debt,0);
+  const supplierDebt = suppliersCache.filter(s=>Number(s.balance)>0).reduce((s,x)=>s+Number(x.balance),0);
+  const net = customerDebt - supplierDebt;
+  document.getElementById('credit-total-debt').textContent = fmt(customerDebt) + ' ج.م';
+  document.getElementById('credit-debtor-count').textContent = debtors.length;
+  document.getElementById('supplier-total-debt').textContent = fmt(supplierDebt) + ' ج.م';
+  const netEl = document.getElementById('credit-net');
+  netEl.textContent = fmt(net) + ' ج.م';
+  const netKpi = document.getElementById('credit-net-kpi');
+  netKpi.classList.remove('brick','gold');
+  if(net < 0) netKpi.classList.add('brick'); // احنا مدينين أكتر مما لينا
+}
 async function renderCreditSummary(){
-  if(customersCache.length){
-    const debtors = customersCache.filter(c=>c.debt>0);
-    document.getElementById('credit-total-debt').textContent = fmt(debtors.reduce((s,c)=>s+c.debt,0)) + ' ج.م';
-    document.getElementById('credit-debtor-count').textContent = debtors.length;
-  }
+  paintCreditNet();
   if(navigator.onLine){
     try{
-      const r = await api('getCustomers', {});
-      customersCache = r.customers || [];
-      const debtors = customersCache.filter(c=>c.debt>0);
-      document.getElementById('credit-total-debt').textContent = fmt(debtors.reduce((s,c)=>s+c.debt,0)) + ' ج.م';
-      document.getElementById('credit-debtor-count').textContent = debtors.length;
+      const [custR, supR] = await Promise.all([api('getCustomers', {}), api('getSuppliers', {})]);
+      customersCache = custR.customers || [];
+      suppliersCache = supR.suppliers || [];
+      paintCreditNet();
     }catch(e){}
   }
 }
