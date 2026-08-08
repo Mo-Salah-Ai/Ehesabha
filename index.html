@@ -358,8 +358,8 @@
             <select id="sales-branch-filter"><option value="all">كل الفروع</option></select>
           </div>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>رقم الفاتورة</th><th>الوقت</th><th>الكاشير</th><th>الفرع</th><th>الدفع</th><th>الإجمالي</th><th>الحالة</th><th></th></tr></thead>
-        <tbody id="sales-body"><tr><td colspan="8" style="color:var(--muted);text-align:center;padding:20px;">مفيش فواتير لسه</td></tr></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>رقم الفاتورة</th><th>الوقت</th><th>الكاشير</th><th>الفرع</th><th>الدفع</th><th>الخصم</th><th>الإجمالي</th><th>نقاط العميل</th><th>الحالة</th><th></th></tr></thead>
+        <tbody id="sales-body"><tr><td colspan="10" style="color:var(--muted);text-align:center;padding:20px;">مفيش فواتير لسه</td></tr></tbody></table></div>
       </div>
     </section>
 
@@ -479,7 +479,7 @@
         <h3>إعدادات المتجر</h3>
         <div class="field"><label>اسم المتجر</label><input id="st-store-name"></div>
         <div class="field"><label>الدولة</label>
-          <select id="st-country"><option value="مصر">مصر</option><option value="السعودية">السعودية</option></select>
+          <select id="st-country"><option value="مصر">مصر</option><option value="السعودية">السعودية</option><option value="الإمارات">الإمارات</option><option value="عُمان">عُمان</option></select>
         </div>
         <div class="field"><label>نسبة الضريبة (%)</label><input id="st-tax-rate" type="number" step="0.5"></div>
         <div class="field"><label>الرقم الضريبي (مهم للسعودية)</label><input id="st-vat-number" placeholder="300000000000003"></div>
@@ -526,6 +526,8 @@
     <div class="amt" id="r-amt">0.00 ج.م</div>
     <div class="meta" id="r-pay">الدفع: كاش</div>
     <div class="meta" id="r-branch" style="margin-top:4px;"></div>
+    <div class="meta" id="r-discount" style="margin-top:4px;color:var(--danger);display:none;"></div>
+    <div class="meta" id="r-points" style="margin-top:4px;color:var(--gold);font-weight:700;display:none;"></div>
     <div class="actions">
       <button class="btn-ghost" id="r-print">🖨 طباعة الفاتورة</button>
       <button class="btn-primary" id="r-close">فاتورة جديدة</button>
@@ -604,7 +606,7 @@
     <h3 id="ci-title">فواتير العميل</h3>
     <div id="ci-customer-info" style="font-size:13px;color:var(--muted);margin-bottom:12px;"></div>
     <div class="table-wrap"><table>
-      <thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>الفرع</th><th>الإجمالي</th><th>الحالة</th></tr></thead>
+      <thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>الفرع</th><th>الخصم</th><th>الإجمالي</th><th>نقاط العميل</th><th>الحالة</th></tr></thead>
       <tbody id="ci-body"></tbody>
     </table></div>
     <div style="margin-top:12px;font-weight:800;font-family:'Cairo';font-size:16px;" id="ci-total"></div>
@@ -1239,18 +1241,19 @@ document.getElementById('checkout-btn').addEventListener('click', async ()=>{
   if(entries.length===0) return;
   if(activePay === 'credit' && !lookedUpCustomer){ showToast('⚠️ لازم تحدد عميل الأول عشان تبيع آجل'); return; }
   const t = computeCartTotals();
+  const pointsRate = Number(appSettings.pointsRate) || 10;
+  const pointsEarned = Math.floor(t.grand / 1000) * pointsRate;
+  const pointsRedeemed = t.pointsRedeemed || 0;
   const invoice = { invoiceId: uid(), dateTime: new Date().toISOString(), cashier: currentUser.username, branch: currentUser.branch || '',
     items: entries.map(e=>({id:e.id, n:e.name, qty:e.qty, p:e.price})), subtotal: t.sub, tax: t.tax, total: t.grand, discount: t.discountAmount,
-    customerPhone: lookedUpCustomer ? lookedUpCustomer.phone : '', paymentMethod: activePay, synced: false };
+    pointsDiscount: t.pointsDiscount || 0, pointsEarned: pointsEarned, pointsRedeemed: pointsRedeemed,
+    customerName: lookedUpCustomer ? lookedUpCustomer.name : '', customerPhone: lookedUpCustomer ? lookedUpCustomer.phone : '', paymentMethod: activePay, synced: false };
   sessionSales.unshift(invoice); ls_set('abdo_sales_log', sessionSales); queueSale(invoice); lastInvoice = invoice;
   entries.forEach(e=>{ const p = products.find(x=>x.id===e.id); if(p && p.stock !== '' && p.stock !== undefined && p.stock !== null){ p.stock = Math.max(0, Number(p.stock) - e.qty); } });
   ls_set('abdo_products', products);
 
   // Update customer loyalty for ANY payment method
   if(lookedUpCustomer){
-    const pointsRate = Number(appSettings.pointsRate) || 10;
-    const pointsEarned = Math.floor(t.grand / 1000) * pointsRate;
-    const pointsRedeemed = t.pointsRedeemed || 0;
     const addDebt = activePay === 'credit' ? t.grand : 0;
     const payload = { 
       phone: lookedUpCustomer.phone, 
@@ -1270,6 +1273,13 @@ document.getElementById('checkout-btn').addEventListener('click', async ()=>{
   document.getElementById('r-amt').textContent = fmt(t.grand)+' ج.م';
   document.getElementById('r-pay').textContent = 'الدفع: '+payLabel;
   document.getElementById('r-branch').textContent = 'الفرع: ' + (currentUser.branch || 'غير محدد');
+  const totalDiscount = (invoice.discount || 0) + (invoice.pointsDiscount || 0);
+  const discEl = document.getElementById('r-discount');
+  if(totalDiscount > 0){ discEl.textContent = '💸 إجمالي الخصم: ' + fmt(totalDiscount) + ' ج.م'; discEl.style.display='block'; }
+  else{ discEl.style.display='none'; }
+  const ptsEl = document.getElementById('r-points');
+  if(lookedUpCustomer && pointsEarned > 0){ ptsEl.textContent = '⭐ نقاط اكتسبها العميل: ' + pointsEarned; ptsEl.style.display='block'; }
+  else{ ptsEl.style.display='none'; }
   document.getElementById('receipt-modal').classList.add('show');
   cart = {}; cartDiscount = null; resetCustomerLookup(); renderCart(); renderItems();
   document.getElementById('cash-given').value = '';
@@ -1372,7 +1382,12 @@ function printReceipt(invoice){
   const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة', credit:'آجل'}[invoice.paymentMethod];
   const isKsa = appSettings.country === 'السعودية';
   const qrData = isKsa ? buildZatcaQR(appSettings.storeName, appSettings.vatNumber, invoice.dateTime, invoice.total, invoice.tax) : '';
-  w.document.write('<html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>فاتورة '+invoice.invoiceId+'</title><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></'+'script><style>body{font-family:Tahoma,Arial,sans-serif;padding:16px;color:#1c1815;}h2{text-align:center;margin:4px 0;}.muted{color:#777;text-align:center;font-size:12px;margin-bottom:10px;}table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}td,th{padding:5px 2px;border-bottom:1px dashed #ccc;text-align:right;}.totals{margin-top:10px;font-size:13px;}.totals div{display:flex;justify-content:space-between;padding:3px 0;}.grand{font-weight:bold;font-size:16px;border-top:1px solid #333;padding-top:6px;margin-top:6px;}#qr{text-align:center;margin-top:14px;}img.logo{display:block;margin:0 auto 6px;max-width:80px;}</style></head><body><img class="logo" src="'+LOGO_URL+'"><h2>'+appSettings.storeName+'</h2>'+(isKsa && appSettings.vatNumber ? '<div class="muted">الرقم الضريبي: '+appSettings.vatNumber+'</div>' : '')+'<div class="muted">فاتورة رقم '+invoice.invoiceId+'<br>'+new Date(invoice.dateTime).toLocaleString('ar-EG')+'<br>الكاشير: '+invoice.cashier+'<br>الفرع: '+(invoice.branch||'غير محدد')+'</div><table><thead><tr><th>الصنف</th><th>الكمية</th><th>الإجمالي</th></tr></thead><tbody>'+invoice.items.map(it=>'<tr><td>'+it.n+'</td><td>'+it.qty+'</td><td>'+fmt(it.p*it.qty)+'</td></tr>').join('')+'</tbody></table><div class="totals"><div><span>الإجمالي الفرعي</span><span>'+fmt(invoice.subtotal)+'</span></div><div><span>الضريبة</span><span>'+fmt(invoice.tax)+'</span></div><div class="grand"><span>الإجمالي</span><span>'+fmt(invoice.total)+'</span></div><div><span>طريقة الدفع</span><span>'+payLabel+'</span></div></div>'+(isKsa ? '<div id="qr"></div><script>new QRCode(document.getElementById("qr"), {text:"'+qrData+'", width:120, height:120});</'+'script>' : '')+'<div class="muted" style="margin-top:16px;">شكرًا لتعاملكم معنا</div><script>window.onload=function(){setTimeout(function(){window.print();},500);};</'+'script></body></html>');
+  const totalDiscount = (invoice.discount || 0) + (invoice.pointsDiscount || 0);
+  const discountRowHtml = totalDiscount > 0 ? '<div><span>إجمالي الخصم</span><span>-'+fmt(totalDiscount)+'</span></div>' : '';
+  const customerRowHtml = invoice.customerName || invoice.customerPhone ? '<br>العميل: '+(invoice.customerName||'')+(invoice.customerPhone?' - '+invoice.customerPhone:'') : '';
+  const pointsHtml = (invoice.pointsEarned && invoice.pointsEarned > 0) ? '<div class="muted" style="margin-top:8px;font-weight:bold;">⭐ نقاط اكتسبها العميل من العملية دي: '+invoice.pointsEarned+'</div>' : '';
+  const redeemedHtml = (invoice.pointsRedeemed && invoice.pointsRedeemed > 0) ? '<div class="muted">تم استبدال '+invoice.pointsRedeemed+' نقطة بخصم</div>' : '';
+  w.document.write('<html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>فاتورة '+invoice.invoiceId+'</title><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></'+'script><style>body{font-family:Tahoma,Arial,sans-serif;padding:16px;color:#1c1815;}h2{text-align:center;margin:4px 0;}.muted{color:#777;text-align:center;font-size:12px;margin-bottom:10px;}table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}td,th{padding:5px 2px;border-bottom:1px dashed #ccc;text-align:right;}.totals{margin-top:10px;font-size:13px;}.totals div{display:flex;justify-content:space-between;padding:3px 0;}.grand{font-weight:bold;font-size:16px;border-top:1px solid #333;padding-top:6px;margin-top:6px;}#qr{text-align:center;margin-top:14px;}img.logo{display:block;margin:0 auto 6px;max-width:80px;}</style></head><body><img class="logo" src="'+LOGO_URL+'"><h2>'+appSettings.storeName+'</h2>'+(isKsa && appSettings.vatNumber ? '<div class="muted">الرقم الضريبي: '+appSettings.vatNumber+'</div>' : '')+'<div class="muted">فاتورة رقم '+invoice.invoiceId+'<br>'+new Date(invoice.dateTime).toLocaleString('ar-EG')+'<br>الكاشير: '+invoice.cashier+'<br>الفرع: '+(invoice.branch||'غير محدد')+customerRowHtml+'</div><table><thead><tr><th>الصنف</th><th>الكمية</th><th>الإجمالي</th></tr></thead><tbody>'+invoice.items.map(it=>'<tr><td>'+it.n+'</td><td>'+it.qty+'</td><td>'+fmt(it.p*it.qty)+'</td></tr>').join('')+'</tbody></table><div class="totals"><div><span>الإجمالي الفرعي</span><span>'+fmt(invoice.subtotal)+'</span></div>'+discountRowHtml+'<div><span>الضريبة</span><span>'+fmt(invoice.tax)+'</span></div><div class="grand"><span>الإجمالي</span><span>'+fmt(invoice.total)+'</span></div><div><span>طريقة الدفع</span><span>'+payLabel+'</span></div></div>'+pointsHtml+redeemedHtml+(isKsa ? '<div id="qr"></div><script>new QRCode(document.getElementById("qr"), {text:"'+qrData+'", width:120, height:120});</'+'script>' : '')+'<div class="muted" style="margin-top:16px;">شكرًا لتعاملكم معنا</div><script>window.onload=function(){setTimeout(function(){window.print();},500);};</'+'script></body></html>');
   w.document.close();
 }
 
@@ -1476,9 +1491,14 @@ function renderSales(){
   if(isManagerOrAbove() && branchFilter !== 'all'){
     list = list.filter(inv => (inv.branch || '') === branchFilter);
   }
-  if(list.length===0){ tbody.innerHTML = '<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:20px;">مفيش فواتير في الفترة دي</td></tr>'; return; }
+  if(list.length===0){ tbody.innerHTML = '<tr><td colspan="10" style="color:var(--muted);text-align:center;padding:20px;">مفيش فواتير في الفترة دي</td></tr>'; return; }
   const payLabel = {cash:'كاش', card:'فيزا', wallet:'محفظة', credit:'آجل', 'مرتجع':'مرتجع'};
-  tbody.innerHTML = list.map((inv)=>'<tr style="'+(inv.status==='ملغية'?'opacity:0.55;text-decoration:line-through;':'')+'"><td>'+inv.invoiceId+'</td><td>'+new Date(inv.dateTime).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})+'</td><td>'+inv.cashier+'</td><td>'+(inv.branch||'—')+'</td><td><span class="badge '+(inv.paymentMethod==='cash'?'cash':inv.paymentMethod==='مرتجع'?'low':'card')+'">'+(payLabel[inv.paymentMethod]||inv.paymentMethod)+'</span></td><td>'+fmt(inv.total)+' ج.م</td><td>'+(inv.status==='ملغية' ? '<span class="badge low">ملغية</span>' : (inv.synced ? '<span class="badge cash">متزامن</span>' : '<span class="badge pending">في انتظار المزامنة</span>'))+'</td><td style="display:flex;gap:6px;"><button class="small-btn" data-id="'+inv.invoiceId+'" data-act="print-sale">🖨</button>'+(isManagerOrAbove() && inv.status!=='ملغية'?'<button class="small-btn danger" data-id="'+inv.invoiceId+'" data-act="cancel-sale">❌ إلغاء</button>':'')+(isChief()?'<button class="small-btn danger" data-id="'+inv.invoiceId+'" data-act="del-sale">🗑</button>':'')+'</td></tr>').join('');
+  tbody.innerHTML = list.map((inv)=>{
+    const totalDiscount = (inv.discount || 0) + (inv.pointsDiscount || 0);
+    const discountHtml = totalDiscount > 0 ? '<span style="color:var(--danger);font-weight:700;">-'+fmt(totalDiscount)+' ج.م</span>' : '<span style="color:var(--muted);">—</span>';
+    const pointsHtml = (inv.pointsEarned && inv.pointsEarned > 0) ? '<span style="color:var(--gold);font-weight:700;">⭐ '+inv.pointsEarned+'</span>' : '<span style="color:var(--muted);">—</span>';
+    return '<tr style="'+(inv.status==='ملغية'?'opacity:0.55;text-decoration:line-through;':'')+'"><td>'+inv.invoiceId+'</td><td>'+new Date(inv.dateTime).toLocaleString('ar-EG',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})+'</td><td>'+inv.cashier+'</td><td>'+(inv.branch||'—')+'</td><td><span class="badge '+(inv.paymentMethod==='cash'?'cash':inv.paymentMethod==='مرتجع'?'low':'card')+'">'+(payLabel[inv.paymentMethod]||inv.paymentMethod)+'</span></td><td>'+discountHtml+'</td><td>'+fmt(inv.total)+' ج.م</td><td>'+pointsHtml+'</td><td>'+(inv.status==='ملغية' ? '<span class="badge low">ملغية</span>' : (inv.synced ? '<span class="badge cash">متزامن</span>' : '<span class="badge pending">في انتظار المزامنة</span>'))+'</td><td style="display:flex;gap:6px;"><button class="small-btn" data-id="'+inv.invoiceId+'" data-act="print-sale">🖨</button>'+(isManagerOrAbove() && inv.status!=='ملغية'?'<button class="small-btn danger" data-id="'+inv.invoiceId+'" data-act="cancel-sale">❌ إلغاء</button>':'')+(isChief()?'<button class="small-btn danger" data-id="'+inv.invoiceId+'" data-act="del-sale">🗑</button>':'')+'</td></tr>';
+  }).join('');
   tbody.querySelectorAll('[data-act="print-sale"]').forEach(b=>{ b.addEventListener('click', ()=>{ const inv = sessionSales.find(s=>s.invoiceId===b.dataset.id); if(inv) printReceipt(inv); }); });
   tbody.querySelectorAll('[data-act="cancel-sale"]').forEach(b=>{ b.addEventListener('click', async ()=>{
     const inv = sessionSales.find(s=>s.invoiceId===b.dataset.id);
@@ -1647,16 +1667,16 @@ async function renderCustomerInvoices(phone){
 
   title.textContent = 'فواتير الدين — ' + customer.name;
   info.textContent = '📱 ' + customer.phone + ' | الدين الحالي: ' + fmt(customer.debt) + ' ج.م';
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">جاري التحميل...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);">جاري التحميل...</td></tr>';
   modal.classList.add('show');
 
-  if(!navigator.onLine){ tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--danger);">محتاج اتصال بالنت</td></tr>'; return; }
+  if(!navigator.onLine){ tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);">محتاج اتصال بالنت</td></tr>'; return; }
 
   try{
     const r = await api('getCustomerInvoices', {phone: phone});
     const invoices = r.invoices || [];
     if(invoices.length === 0){
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">مفيش فواتير دين مسجلة للعميل ده</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);">مفيش فواتير دين مسجلة للعميل ده</td></tr>';
       totalEl.textContent = '';
       return;
     }
@@ -1664,11 +1684,13 @@ async function renderCustomerInvoices(phone){
     tbody.innerHTML = invoices.map(inv => {
       const dt = new Date(inv.dateTime);
       const dateStr = isNaN(dt.getTime()) ? inv.dateTime : dt.toLocaleDateString('ar-EG') + ' ' + dt.toLocaleTimeString('ar-EG', {hour:'2-digit', minute:'2-digit'});
-      return '<tr><td>' + inv.invoiceId + '</td><td>' + dateStr + '</td><td>' + (inv.branch || '—') + '</td><td>' + fmt(inv.total) + ' ج.م</td><td><span class="badge ' + (inv.status === 'ملغية' ? 'low' : 'pending') + '">' + (inv.status || 'آجل') + '</span></td></tr>';
+      const discountHtml = (inv.discount && inv.discount > 0) ? '<span style="color:var(--danger);font-weight:700;">-' + fmt(inv.discount) + ' ج.م</span>' : '<span style="color:var(--muted);">—</span>';
+      const pointsHtml = (inv.pointsEarned && inv.pointsEarned > 0) ? '<span style="color:var(--gold);font-weight:700;">⭐ ' + inv.pointsEarned + '</span>' : '<span style="color:var(--muted);">—</span>';
+      return '<tr><td>' + inv.invoiceId + '</td><td>' + dateStr + '</td><td>' + (inv.branch || '—') + '</td><td>' + discountHtml + '</td><td>' + fmt(inv.total) + ' ج.م</td><td>' + pointsHtml + '</td><td><span class="badge ' + (inv.status === 'ملغية' ? 'low' : 'pending') + '">' + (inv.status || 'آجل') + '</span></td></tr>';
     }).join('');
     totalEl.textContent = 'إجمالي فواتير الدين: ' + fmt(totalDebt) + ' ج.م';
   }catch(e){
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--danger);">حصل خطأ: ' + e.message + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);">حصل خطأ: ' + e.message + '</td></tr>';
     totalEl.textContent = '';
   }
 }
@@ -1923,7 +1945,7 @@ document.getElementById('load-full-history-btn').addEventListener('click', async
   const original = btn.textContent; btn.textContent = 'جاري التحميل...'; btn.disabled = true;
   try{
     const r = await api('getSalesReport', {});
-    const serverInvoices = (r.sales || []).map(s=>{ let items=[]; try{ items = JSON.parse(s.items); }catch(e){} return { invoiceId:s.invoiceId, dateTime:s.dateTime, cashier:s.cashier, branch:s.branch||'', items, subtotal:Number(s.subtotal), tax:Number(s.tax), total:Number(s.total), paymentMethod:s.paymentMethod, synced:true }; });
+    const serverInvoices = (r.sales || []).map(s=>{ let items=[]; try{ items = JSON.parse(s.items); }catch(e){} return { invoiceId:s.invoiceId, dateTime:s.dateTime, cashier:s.cashier, branch:s.branch||'', items, subtotal:Number(s.subtotal), tax:Number(s.tax), total:Number(s.total), paymentMethod:s.paymentMethod, discount:Number(s.discount)||0, pointsEarned:Number(s.pointsEarned)||0, status:s.status||'سليمة', synced:true }; });
     const map = {}; [...serverInvoices, ...sessionSales].forEach(inv=>{ map[inv.invoiceId] = inv; });
     sessionSales = Object.values(map).sort((a,b)=> new Date(b.dateTime) - new Date(a.dateTime));
     ls_set('abdo_sales_log', sessionSales); renderSales(); renderDashboard();
@@ -1946,7 +1968,10 @@ function loadSettingsForm(){
   document.getElementById('st-color-olive').value = savedColors.olive || '#5c6b3f';
   document.getElementById('st-color-brick').value = savedColors.brick || '#b1502f';
 }
-document.getElementById('st-country').addEventListener('change', (e)=>{ document.getElementById('st-tax-rate').value = e.target.value === 'السعودية' ? 15 : 14; });
+document.getElementById('st-country').addEventListener('change', (e)=>{
+  const taxByCountry = { 'مصر':14, 'السعودية':15, 'الإمارات':5, 'عُمان':5 };
+  document.getElementById('st-tax-rate').value = taxByCountry[e.target.value] !== undefined ? taxByCountry[e.target.value] : 14;
+});
 document.getElementById('st-save-btn').addEventListener('click', async ()=>{
   const note = document.getElementById('st-note');
   if(!navigator.onLine){ note.textContent = 'محتاج اتصال بالنت عشان تحفظ الإعدادات'; return; }
