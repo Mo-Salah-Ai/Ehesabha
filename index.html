@@ -47,7 +47,7 @@
   .login-orbs span:nth-child(5){width:70px;height:70px;left:48%;top:86%;animation-duration:12s;animation-delay:1.5s;}
   @keyframes orbFloat{0%,100%{transform:translateY(0) translateX(0);}50%{transform:translateY(-26px) translateX(10px);}}
 
-  .login-stage{width:220px;max-width:66vw;margin-bottom:-38px;position:relative;z-index:2;filter:drop-shadow(0 12px 16px rgba(0,0,0,.35));animation:stageIn .7s ease both;}
+  .login-stage{width:220px;max-width:66vw;margin-bottom:14px;position:relative;z-index:2;filter:drop-shadow(0 12px 16px rgba(0,0,0,.35));animation:stageIn .7s ease both;text-align:center;}
   .shop-illustration{width:100%;height:auto;overflow:visible;display:block;}
   .shop-illustration .win{animation:winGlow 2.4s ease-in-out infinite;}
   .shop-illustration .win2{animation-delay:.6s;}
@@ -55,6 +55,17 @@
   .sign-swing{animation:signSwing 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0%;}
   @keyframes signSwing{0%,100%{transform:rotate(-3deg);}50%{transform:rotate(3deg);}}
   @keyframes stageIn{from{opacity:0;transform:translateY(18px) scale(.92);}to{opacity:1;transform:translateY(0) scale(1);}}
+  .shop-door{cursor:pointer;transform-box:fill-box;transform-origin:100% 50%;transition:transform .5s cubic-bezier(.65,.05,.36,1),opacity .4s;animation:doorInvite 1.8s 2.1s ease-in-out infinite;}
+  .shop-door:hover rect:not([fill="transparent"]){filter:brightness(1.15);}
+  .shop-door.open{transform:scaleX(.1) rotate(-4deg);opacity:0;animation:none;}
+  @keyframes doorInvite{0%,100%{transform:rotate(0deg);}50%{transform:rotate(-6deg);}}
+  .toy-car{transform:translateX(80px);opacity:0;animation:carArrive 1.6s .2s cubic-bezier(.22,.7,.25,1) forwards;}
+  @keyframes carArrive{0%{transform:translateX(80px);opacity:0;}65%{transform:translateX(-5px);opacity:1;}82%{transform:translateX(2px);}100%{transform:translateX(0);opacity:1;}}
+  .toy-car .wheel{transform-box:fill-box;transform-origin:50% 50%;animation:wheelSpin 1.6s .2s linear forwards;}
+  @keyframes wheelSpin{from{transform:rotate(0deg);}to{transform:rotate(620deg);}}
+  .tap-hint{margin-top:2px;font-size:12px;color:var(--paper);opacity:.8;text-align:center;animation:tapPulse 1.6s ease-in-out infinite;position:relative;z-index:2;}
+  @keyframes tapPulse{0%,100%{opacity:.5;transform:translateY(0);}50%{opacity:1;transform:translateY(3px);}}
+  .tap-hint.hide{opacity:0;pointer-events:none;transition:opacity .3s;}
 
   .login-card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:54px 28px 30px;width:100%;max-width:360px;box-shadow:0 20px 45px rgba(0,0,0,.35),var(--shadow);text-align:center;position:relative;z-index:1;animation:cardIn .6s .1s ease both;}
   @keyframes cardIn{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
@@ -255,9 +266,10 @@
 
 <div class="login-wrap" id="login-screen">
   <div class="login-orbs" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-  <div class="login-stage" aria-hidden="true">
+  <div class="login-stage" id="login-stage">
     <svg class="shop-illustration" viewBox="0 0 220 170">
-      <ellipse cx="110" cy="158" rx="78" ry="8" fill="rgba(0,0,0,0.18)"/>
+      <rect x="0" y="150" width="220" height="16" fill="var(--ink)" opacity="0.45"/>
+      <line x1="0" y1="158" x2="220" y2="158" stroke="var(--gold)" stroke-width="2" stroke-dasharray="10 8" opacity="0.45"/>
       <rect x="35" y="70" width="150" height="80" rx="4" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
       <path d="M30 70 L110 40 L190 70 Z" fill="var(--brick)"/>
       <path d="M30 70 L45 90 L60 70 Z" fill="var(--gold)"/>
@@ -265,18 +277,34 @@
       <path d="M90 70 L105 90 L120 70 Z" fill="var(--gold)"/>
       <path d="M120 70 L135 90 L150 70 Z" fill="var(--card)"/>
       <path d="M150 70 L165 90 L180 70 Z" fill="var(--gold)"/>
-      <rect x="95" y="105" width="30" height="45" rx="2" fill="var(--olive-dark)"/>
-      <circle cx="118" cy="128" r="2" fill="var(--gold)"/>
       <rect class="win" x="48" y="100" width="32" height="26" rx="3" fill="var(--gold)" opacity="0.85"/>
       <rect class="win win2" x="140" y="100" width="32" height="26" rx="3" fill="var(--gold)" opacity="0.85"/>
+      <rect x="95" y="105" width="30" height="45" rx="2" fill="var(--ink)"/>
+      <g id="shop-door" class="shop-door">
+        <rect x="88" y="98" width="44" height="55" fill="transparent"/>
+        <rect x="95" y="105" width="30" height="45" rx="2" fill="var(--olive-dark)"/>
+        <circle cx="118" cy="128" r="2" fill="var(--gold)"/>
+      </g>
       <g class="sign-swing">
         <line x1="110" y1="40" x2="110" y2="52" stroke="var(--olive-dark)" stroke-width="2"/>
-        <rect x="80" y="52" width="60" height="20" rx="4" fill="var(--olive)"/>
-        <text x="110" y="66" text-anchor="middle" font-size="11" fill="#fff" font-weight="800" font-family="Cairo, sans-serif">ج.م</text>
+        <rect x="66" y="52" width="88" height="20" rx="4" fill="var(--olive)"/>
+        <text x="110" y="66" text-anchor="middle" font-size="12" fill="#fff" font-weight="800" font-family="Cairo, sans-serif">احسبها</text>
+      </g>
+      <g transform="translate(172,152)">
+        <g class="toy-car" id="toy-car">
+          <ellipse cx="0" cy="1" rx="27" ry="4" fill="rgba(0,0,0,0.28)"/>
+          <rect x="-24" y="-20" width="48" height="14" rx="5" fill="var(--brick)"/>
+          <rect x="-14" y="-30" width="26" height="11" rx="4" fill="var(--brick)"/>
+          <rect x="-11" y="-28" width="20" height="6" rx="1.5" fill="var(--gold)" opacity="0.55"/>
+          <circle cx="21" cy="-15" r="1.8" fill="var(--gold)"/>
+          <g transform="translate(-14,-4)"><g class="wheel"><circle r="6" fill="var(--ink)"/><circle r="2" fill="var(--gold)"/><line x1="0" y1="-6" x2="0" y2="6" stroke="var(--gold)" stroke-width="1"/></g></g>
+          <g transform="translate(14,-4)"><g class="wheel"><circle r="6" fill="var(--ink)"/><circle r="2" fill="var(--gold)"/><line x1="0" y1="-6" x2="0" y2="6" stroke="var(--gold)" stroke-width="1"/></g></g>
+        </g>
       </g>
     </svg>
+    <div class="tap-hint" id="tap-hint">كاشير</div>
   </div>
-  <div class="login-card">
+  <div class="login-card" id="login-card" style="display:none;">
     <div class="mark" id="login-mark">ح</div>
     <h1 id="login-store-name">احسبها</h1>
     <div class="sub">نظام كاشير ومبيعات — سجّل دخولك</div>
@@ -997,6 +1025,28 @@ window.addEventListener('online', updateStatus);
 window.addEventListener('offline', updateStatus);
 
 /* ================= تسجيل الدخول ================= */
+/* ================= كشك الدخول: دوس على الباب يظهر فورم تسجيل الدخول ================= */
+(function(){
+  const doorEl = document.getElementById('shop-door');
+  const stageEl = document.getElementById('login-stage');
+  const cardEl = document.getElementById('login-card');
+  const hintEl = document.getElementById('tap-hint');
+  let doorOpened = false;
+  function openShopDoor(){
+    if(doorOpened || !cardEl) return;
+    doorOpened = true;
+    if(doorEl) doorEl.classList.add('open');
+    if(hintEl) hintEl.classList.add('hide');
+    setTimeout(()=>{
+      cardEl.style.display = 'block';
+      const u = document.getElementById('li-user');
+      if(u) u.focus();
+    }, 320);
+  }
+  if(doorEl) doorEl.addEventListener('click', openShopDoor);
+  if(stageEl) stageEl.addEventListener('click', openShopDoor);
+})();
+
 document.getElementById('login-btn').addEventListener('click', doLogin);
 function showLoginError(msg){
   const errEl = document.getElementById('login-err');
