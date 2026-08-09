@@ -1,17 +1,17 @@
-const CACHE_NAME = 'abdo-hesabat-v1';
+const CACHE_NAME = 'abdo-hesabat-v2'; // غيّرت الرقم من v1 لـ v2 عشان يمسح الكاش القديم
 const FILES_TO_CACHE = [
   './',
   './index.html',
-  './manifest.json'
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
-
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(FILES_TO_CACHE))
   );
   self.skipWaiting();
 });
-
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -20,9 +20,7 @@ self.addEventListener('activate', (e) => {
   );
   self.clients.claim();
 });
-
 self.addEventListener('fetch', (e) => {
-  // مبنخزنش طلبات الـ API نفسها، بس نخزن ملفات التطبيق (الشِل) عشان يفتح أوف لاين
   if (e.request.method !== 'GET') return;
   e.respondWith(
     caches.match(e.request).then((cached) => {
