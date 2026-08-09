@@ -100,7 +100,11 @@
   .topbar .right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
   .status-dot{width:9px;height:9px;border-radius:50%;background:#7fbf6a;}
   .status-dot.off{background:#d9534f;}
+  .status-dot.idle{background:#c8b273;}
   .status-txt{font-size:11.5px;color:#e7e2d3;}
+  #attendance-status-btn{cursor:pointer;}
+  #attendance-status-btn .status-dot{animation:none;}
+  #attendance-status-btn .status-dot:not(.off):not(.idle){box-shadow:0 0 0 3px rgba(127,191,106,0.25);}
   .who{font-size:12.5px;color:#e7e2d3;background:rgba(255,255,255,0.08);padding:5px 12px 5px 5px;border-radius:20px;display:flex;align-items:center;gap:8px;}
   .who .avatar{width:26px;height:26px;border-radius:50%;background:var(--gold);color:var(--olive-dark);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:12px;overflow:hidden;}
   .who .avatar img{width:100%;height:100%;object-fit:cover;}
@@ -321,6 +325,10 @@
     <div class="right">
       <span class="status-dot" id="status-dot"></span>
       <span class="status-txt" id="status-txt">متصل</span>
+      <button class="sync-btn" id="attendance-status-btn" title="اضغط عشان تفتح شاشة الحضور والانصراف">
+        <span class="status-dot" id="att-status-dot"></span>
+        <span class="status-txt" id="att-status-txt">جاري التحميل...</span>
+      </button>
       <button class="sync-btn" id="manual-sync-btn" title="مزامنة الفواتير المعلقة">🔄 مزامنة <span class="count" id="pending-count" style="display:none;">0</span></button>
       <button class="sync-btn" id="theme-toggle-btn" title="الوضع الليلي/النهاري">🌙</button>
       <div class="who">
@@ -583,8 +591,8 @@
           <select id="att-emp-filter"><option value="all">كل الموظفين</option></select>
         </div>
         <div class="table-wrap"><table>
-          <thead><tr><th>الموظف</th><th>الحضور</th><th>الانصراف</th><th>عدد الساعات</th><th>أجر الساعة</th><th>قيمة الشفت</th><th>الفرع</th><th>كاش أول الشفت</th><th>كاش آخر الشفت</th><th>فيزا</th><th>محفظة</th><th>آجل</th><th>عجز/زيادة الدرج</th></tr></thead>
-          <tbody id="all-attendance-body"><tr><td colspan="13" style="text-align:center;color:var(--muted);">دوس تحديث عشان تشوف الحضور</td></tr></tbody>
+          <thead><tr><th>الموظف</th><th>الحضور</th><th>الانصراف</th><th>عدد الساعات</th><th>أجر الساعة</th><th>قيمة الشفت</th><th>الفرع</th><th>كاش أول الشفت</th><th>كاش آخر الشفت</th><th>مبيعات كاش</th><th>فيزا</th><th>محفظة</th><th>آجل</th><th>عجز/زيادة الدرج</th></tr></thead>
+          <tbody id="all-attendance-body"><tr><td colspan="14" style="text-align:center;color:var(--muted);">دوس تحديث عشان تشوف الحضور</td></tr></tbody>
         </table></div>
       </div>
     </section>
@@ -1020,9 +1028,34 @@ function updateStatus(){
   const txt = document.getElementById('status-txt');
   if(navigator.onLine){ dot.classList.remove('off'); txt.textContent='متصل'; syncPending(); syncPendingCustomerUpdates(); }
   else{ dot.classList.add('off'); txt.textContent='أوف لاين'; }
+  updateAttendanceStatusIndicator();
 }
 window.addEventListener('online', updateStatus);
 window.addEventListener('offline', updateStatus);
+
+/* ================= مؤشر حالة الحضور والانصراف (زي مؤشر المزامنة) ================= */
+function updateAttendanceStatusIndicator(){
+  const dot = document.getElementById('att-status-dot');
+  const txt = document.getElementById('att-status-txt');
+  if(!dot || !txt) return;
+  dot.classList.remove('off', 'idle');
+  if(!navigator.onLine){
+    dot.classList.add('off');
+    txt.textContent = 'غير متصل';
+  } else if(openShiftStatus === true){
+    txt.textContent = 'انت في الوردية';
+  } else if(openShiftStatus === false){
+    dot.classList.add('idle');
+    txt.textContent = 'خارج الوردية';
+  } else {
+    dot.classList.add('idle');
+    txt.textContent = 'جاري التحميل...';
+  }
+}
+document.getElementById('attendance-status-btn').addEventListener('click', ()=>{
+  document.querySelector('.tab-btn[data-tab="attendance"]').click();
+});
+setInterval(async ()=>{ if(navigator.onLine){ await checkOpenShift(); updateAttendanceStatusIndicator(); } }, 30000);
 
 /* ================= تسجيل الدخول ================= */
 /* ================= كشك الدخول: دوس على الباب يظهر فورم تسجيل الدخول ================= */
@@ -1123,11 +1156,12 @@ async function enterApp(){
 
 /* ================= قفل الكاشير قبل تسجيل الحضور ================= */
 async function checkOpenShift(){
-  if(!navigator.onLine){ return openShiftStatus; } // من غير نت سيب الحالة زي ما هي (مايعطلش الشغل أوفلاين)
+  if(!navigator.onLine){ updateAttendanceStatusIndicator(); return openShiftStatus; } // من غير نت سيب الحالة زي ما هي (مايعطلش الشغل أوفلاين)
   try{
     const r = await api('getMyOpenShift', {username: currentUser.username});
     openShiftStatus = !!r.open;
   }catch(e){ /* سيب الحالة القديمة لو حصل خطأ */ }
+  updateAttendanceStatusIndicator();
   return openShiftStatus;
 }
 function applyShiftGate(){
@@ -2237,7 +2271,7 @@ document.getElementById('clock-in-btn').addEventListener('click', async ()=>{
     note.textContent = 'جاري التسجيل...';
     await api('clockIn', {username: currentUser.username, name: currentUser.name, branch: currentUser.branch||'', openingCash, hourlyWage: currentUser.hourlyWage});
     note.textContent = ''; showToast('✅ اتسجل الحضور — كاش أول الشفت: ' + fmt(openingCash) + ' ج.م');
-    openShiftStatus = true; applyShiftGate();
+    openShiftStatus = true; applyShiftGate(); updateAttendanceStatusIndicator();
     renderAttendanceTab();
   }catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
 });
@@ -2257,7 +2291,7 @@ document.getElementById('clock-out-btn').addEventListener('click', async ()=>{
     const diffTxt = r.diff === 0 ? 'الدرج مظبوط بالظبط ✅' : (r.diff > 0 ? ('في زيادة قدرها ' + fmt(r.diff) + ' ج.م') : ('في عجز قدره ' + fmt(Math.abs(r.diff)) + ' ج.م'));
     note.textContent = 'المتوقع نقدي: ' + fmt(r.expectedCash) + ' ج.م (بداية ' + fmt(r.openingCash) + ' + مبيعات كاش ' + fmt(r.cashSales) + ') — المعدود: ' + fmt(r.closingCash) + ' ج.م — ' + diffTxt + '\nفيزا: ' + fmt(r.cardSales) + ' ج.م — محفظة: ' + fmt(r.walletSales) + ' ج.م — آجل: ' + fmt(r.creditSales) + ' ج.م';
     showToast('✅ اتسجل الانصراف — الشفت: ' + fmt(r.total) + ' ج.م (' + r.hours + ' ساعة) — ' + diffTxt);
-    openShiftStatus = false; applyShiftGate();
+    openShiftStatus = false; applyShiftGate(); updateAttendanceStatusIndicator();
     renderAttendanceTab();
   }catch(e){ note.textContent = 'حصل خطأ: ' + e.message; }
 });
@@ -2300,7 +2334,7 @@ function paintAllAttendance(){
   const list = filterVal==='all' ? allAttendanceCache : allAttendanceCache.filter(a=>a.username===filterVal);
   const tbody = document.getElementById('all-attendance-body');
   if(!list.length){ tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--muted);">مفيش سجل حضور</td></tr>'; return; }
-  tbody.innerHTML = list.map(a=>'<tr><td>'+a.name+'</td><td>'+fmtDT(a.checkIn)+'</td><td>'+(a.checkOut?fmtDT(a.checkOut):'— لسه شغال —')+'</td><td>'+(a.hours!==''?a.hours:'—')+'</td><td>'+(a.hourlyWage!==''?fmt(a.hourlyWage)+' ج.م':'—')+'</td><td>'+(a.total!==''?fmt(a.total)+' ج.م':'—')+'</td><td>'+(a.branch||'—')+'</td><td>'+(a.openingCash!==''?fmt(a.openingCash)+' ج.م':'—')+'</td><td>'+(a.closingCash!==''?fmt(a.closingCash)+' ج.م':'—')+'</td><td>'+(a.cardSales!==''?fmt(a.cardSales)+' ج.م':'—')+'</td><td>'+(a.walletSales!==''?fmt(a.walletSales)+' ج.م':'—')+'</td><td>'+(a.creditSales!==''?fmt(a.creditSales)+' ج.م':'—')+'</td><td>'+fmtDiff(a.diff)+'</td></tr>').join('');
+  tbody.innerHTML = list.map(a=>'<tr><td>'+a.name+'</td><td>'+fmtDT(a.checkIn)+'</td><td>'+(a.checkOut?fmtDT(a.checkOut):'— لسه شغال —')+'</td><td>'+(a.hours!==''?a.hours:'—')+'</td><td>'+(a.hourlyWage!==''?fmt(a.hourlyWage)+' ج.م':'—')+'</td><td>'+(a.total!==''?fmt(a.total)+' ج.م':'—')+'</td><td>'+(a.branch||'—')+'</td><td>'+(a.openingCash!==''?fmt(a.openingCash)+' ج.م':'—')+'</td><td>'+(a.closingCash!==''?fmt(a.closingCash)+' ج.م':'—')+'</td><td>'+(a.cashSales!==''?fmt(a.cashSales)+' ج.م':'—')+'</td><td>'+(a.cardSales!==''?fmt(a.cardSales)+' ج.م':'—')+'</td><td>'+(a.walletSales!==''?fmt(a.walletSales)+' ج.م':'—')+'</td><td>'+(a.creditSales!==''?fmt(a.creditSales)+' ج.م':'—')+'</td><td>'+fmtDiff(a.diff)+'</td></tr>').join('');
 }
 
 /* ================= الموردين ================= */
