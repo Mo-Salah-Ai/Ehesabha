@@ -1,7 +1,7 @@
 {
-  "name": "عبدو حسابات",
-  "short_name": "عبدو حسابات",
-  "description": "نظام كاشير ومبيعات - عبدو حسابات",
+  "name": "احسبها",
+  "short_name": "احسبها",
+  "description": "نظام كاشير ومبيعات - احسبها",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f6f1e7",
