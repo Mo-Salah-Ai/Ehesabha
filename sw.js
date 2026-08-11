@@ -1,4 +1,4 @@
-const CACHE_NAME = 'abdo-hesabat-v3'; // غيّرت الرقم من v1 لـ v2 عشان يمسح الكاش القديم
+const CACHE_NAME = 'abdo-hesabat-v4'; // غيّرت الرقم من v1 لـ v2 عشان يمسح الكاش القديم
 const FILES_TO_CACHE = [
   './',
   './index.html',
